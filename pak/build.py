@@ -9,14 +9,25 @@ import common
 def build(args):
     meta = common.get_meta()
 
+    pre_build = []
+    pre_build.append([m['pre_build'] for m in [common.get_meta_of(d)
+                     for d in meta['dependencies']] if 'pre_build' in m])
     if 'pre_build' in meta:
-        for cmd in meta['pre_build']:
-            code = subprocess.run(cmd.split(' '),
-                                  stdout=os.sys.stdout, stderr=os.sys.stderr, stdin=os.sys.stdin).returncode
+        pre_build.append(meta['pre_build'])
 
-            if code != 0:
-                print("Pre-build failed")
-                exit(code)
+    post_build = []
+    post_build.append([m['post_build'] for m in [common.get_meta_of(d)
+                                                 for d in meta['dependencies']] if 'post_build' in m])
+    if 'post_build' in meta:
+        post_build.append(meta['post_build'])
+
+    for cmd in pre_build:
+        code = subprocess.run(cmd.split(' '),
+                              stdout=os.sys.stdout, stderr=os.sys.stderr, stdin=os.sys.stdin).returncode
+
+        if code != 0:
+            print("Pre-build failed")
+            exit(code)
 
     files = ['pak.json']
     if 'readme' in meta:
@@ -34,11 +45,10 @@ def build(args):
         for f in files:
             zf.write(f, f, zipfile.ZIP_DEFLATED, compresslevel=9)
 
-    if 'post_build' in meta:
-        for cmd in meta['post_build']:
-            code = subprocess.run(cmd.split(' '),
-                                  stdout=os.sys.stdout, stderr=os.sys.stderr, stdin=os.sys.stdin).returncode
+    for cmd in post_build:
+        code = subprocess.run(cmd.split(' '),
+                              stdout=os.sys.stdout, stderr=os.sys.stderr, stdin=os.sys.stdin).returncode
 
-            if code != 0:
-                print("Post-build failed")
-                exit(code)
+        if code != 0:
+            print("Post-build failed")
+            exit(code)

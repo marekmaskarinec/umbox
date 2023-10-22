@@ -16,6 +16,11 @@ def get_meta() -> dict:
         exit(1)
 
 
+def get_meta_of(name) -> dict:
+    with open(f"pak/{name}/pak.json", 'r') as f:
+        return json.load(f)
+
+
 def set_meta(meta: dict):
     with open("pak.json", 'w') as f:
         json.dump(meta, f, indent=4)
