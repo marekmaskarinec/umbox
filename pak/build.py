@@ -33,3 +33,12 @@ def build(args):
     with zipfile.ZipFile("pak.zip", 'w') as zf:
         for f in files:
             zf.write(f, f, zipfile.ZIP_DEFLATED, compresslevel=9)
+
+    if 'post_build' in meta:
+        for cmd in meta['post_build']:
+            code = subprocess.run(cmd.split(' '),
+                                  stdout=os.sys.stdout, stderr=os.sys.stderr, stdin=os.sys.stdin).returncode
+
+            if code != 0:
+                print("Post-build failed")
+                exit(code)
