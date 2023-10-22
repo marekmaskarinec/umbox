@@ -10,6 +10,7 @@ import search
 import update
 import upload
 import run
+import register
 
 if __name__ == "__main__":
     par = argparse.ArgumentParser(prog="pak", description="A simple package manager for Umka",
@@ -24,6 +25,7 @@ if __name__ == "__main__":
         "search",
         "update",
         "upload",
+        "register"
     ]
 
     par.add_argument("mode", choices=modes, help="pak mode")
@@ -47,3 +49,5 @@ if __name__ == "__main__":
             build.build(args)
         case 'run':
             run.run(args)
+        case 'register':
+            register.register(args)
