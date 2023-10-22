@@ -9,19 +9,21 @@ import remove
 import search
 import update
 import upload
+import run
 
 if __name__ == "__main__":
     par = argparse.ArgumentParser(prog="pak", description="A simple package manager for Umka",
                                   epilog="For more information, visit https://sr.ht/~mrms/pak")
 
     modes = [
+        "build",
         "init",
-        "search",
         "install",
         "remove",
+        "run",
+        "search",
         "update",
         "upload",
-        "build"
     ]
 
     par.add_argument("mode", choices=modes, help="pak mode")
@@ -43,3 +45,5 @@ if __name__ == "__main__":
             upload.upload(args)
         case 'build':
             build.build(args)
+        case 'run':
+            run.run(args)

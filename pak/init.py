@@ -14,10 +14,12 @@ pakjson = """{{
     "author": "{author}",
     "license": "{license}",
     "description": "{description}",
+    "readme": "{readme}",
     "link": "{link}",
     "dependencies": [],
     "include": ["{name}.um"],
-    "build": []
+    "run": "umka {name}.um",
+    "pre_build": []
 }}
 """
 
@@ -41,6 +43,8 @@ def init(args):
                      help="package description", action="store", default="")
     par.add_argument('-u', '--link', help="package link",
                      action="store", default="")
+    par.add_argument('-r', '--readme', help="package readme",
+                     action="store", default="README.md")
 
     ns = par.parse_args(args)
 
@@ -53,7 +57,7 @@ def init(args):
 
     with open("pak.json", "w") as f:
         f.write(pakjson.format(name=ns.name, author=ns.author, license=ns.license,
-                               description=ns.description, link=ns.link))
+                               description=ns.description, readme=ns.readme, link=ns.link))
 
     try:
         os.mkdir("pak")
@@ -64,3 +68,8 @@ def init(args):
         with os.open(".gitignore", "a") as f:
             f.write("pak/\n")
             f.write("pak.zip\n")
+
+    if not os.path.isfile(ns.readme):
+        with open(ns.readme, "w") as f:
+            f.write(
+                f"# {ns.name}\n\n{ns.description}\n\n## license\n\n{ns.license}\n")
