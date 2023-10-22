@@ -24,7 +24,7 @@ def upload(args):
 
     meta = common.get_meta()
 
-    resp = requests.post(f"{ns.url}/package/{meta['name']}/{ns.token}/upload/{ns.file}",
+    resp = requests.post(f"{ns.url}api/package/{meta['name']}/{ns.token}/upload/{ns.file}",
                          data=open(ns.file, "rb"))
 
     if not resp.ok:

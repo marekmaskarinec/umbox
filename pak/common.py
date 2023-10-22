@@ -22,7 +22,7 @@ def set_meta(meta: dict):
 
 
 def exists(package) -> bool:
-    resp = requests.get(f"{url}package/{package}/download/version")
+    resp = requests.get(f"{url}api/package/{package}/download/version")
     return resp.ok
 
 
