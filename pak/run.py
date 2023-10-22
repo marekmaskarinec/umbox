@@ -1,7 +1,7 @@
 
 import os
 
-import common
+from pak import common
 
 
 def run(args):

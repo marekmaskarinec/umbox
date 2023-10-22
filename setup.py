@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from setuptools import setup, find_packages
@@ -18,7 +19,10 @@ setup(
     author_email='marek@mrms.cz',
     url='https://git.sr.ht/~mrms/pak',
     license=license,
-    packages=find_packages()
+    packages=find_packages(),
+    entry_points={
+        'console_scripts': [
+            'pak = pak:main'
+        ]
+    }
 )
-
-

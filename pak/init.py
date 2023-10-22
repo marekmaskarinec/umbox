@@ -19,7 +19,6 @@ pakjson = """{{
     "dependencies": [],
     "include": ["{name}.um"],
     "run": "umka {name}.um",
-    "pre_build": []
 }}
 """
 

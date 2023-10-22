@@ -3,7 +3,7 @@ import argparse
 import os
 import requests
 
-import common
+from pak import common
 
 
 def upload(args):

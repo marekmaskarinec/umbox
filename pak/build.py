@@ -3,7 +3,7 @@ import subprocess
 import os
 import zipfile
 
-import common
+from pak import common
 
 
 def build(args):

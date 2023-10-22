@@ -1,8 +1,8 @@
 
 import argparse
 
-import common
-import update
+from pak import common
+from pak import update
 
 
 def install(args):

@@ -5,7 +5,7 @@ import json
 import zipfile
 import shutil
 
-import common
+from pak import common
 
 
 versions = {}

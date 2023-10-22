@@ -2,7 +2,7 @@
 import argparse
 import requests
 
-import common
+from pak import common
 
 
 def search(args):
