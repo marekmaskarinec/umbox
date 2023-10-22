@@ -3,11 +3,13 @@ import os
 import io
 import json
 import zipfile
+import shutil
 
 import common
 
 
 versions = {}
+touched = set()
 
 
 def mkdir(path):
@@ -24,6 +26,10 @@ def fetch_dep(dep):
     global versions
 
     print(f"Downloading {dep}...")
+
+    if not common.exists(dep):
+        print(f"Package {dep} not found")
+        exit(1)
 
     # create pak/dep directory
     mkdir(os.path.join("pak", dep))
@@ -52,10 +58,9 @@ def fetch_dep(dep):
 def fetch_deps(deps):
     global versions
 
-    if not os.path.isdir("pak"):
-        os.mkdir("pak")
-
     for dep in deps:
+        touched.add(dep)
+
         if not os.path.isdir(f"pak/{dep}"):
             fetch_dep(dep)
             continue
@@ -68,10 +73,19 @@ def fetch_deps(deps):
             fetch_dep(dep)
             continue
 
+        # in case a dependency nor it's parent was updated, we still need to touch it
+        with open(f"pak/{dep}/pak.json", 'r') as f:
+            meta = json.loads(f.read())
+
+        for d in meta['dependencies']:
+            touched.add(d)
+
 
 def update(args):
     global versions
     meta = common.get_meta()
+
+    mkdir("pak")
 
     try:
         with open('pak/versions.json', 'r') as f:
@@ -80,6 +94,15 @@ def update(args):
         pass
 
     fetch_deps(meta['dependencies'])
+
+    for d in os.listdir('pak'):
+        if d == 'versions.json':
+            continue
+
+        if not d in touched:
+            print(f"Removing {d}...")
+            shutil.rmtree(f'pak/{d}')
+            del versions[d]
 
     with open('pak/versions.json', 'w') as f:
         f.write(json.dumps(versions))

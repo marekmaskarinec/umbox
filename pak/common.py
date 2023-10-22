@@ -16,6 +16,16 @@ def get_meta() -> dict:
         exit(1)
 
 
+def set_meta(meta: dict):
+    with open("pak.json", 'w') as f:
+        json.dump(meta, f, indent=4)
+
+
+def exists(package) -> bool:
+    resp = requests.get(f"{url}package/{package}/download/version")
+    return resp.ok
+
+
 def download(package, file) -> bytearray:
     resp = requests.get(f"{url}package/{package}/download/{file}")
     if resp.ok:
