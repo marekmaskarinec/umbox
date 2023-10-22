@@ -1,4 +1,6 @@
 
+import requests
+
 import json
 import os
 
@@ -11,4 +13,13 @@ def get_meta() -> dict:
             return json.load(f)
     except:
         print("Not in a pak directory")
-        os.exit(1)
+        exit(1)
+
+
+def download(package, file) -> bytearray:
+    resp = requests.get(f"{url}package/{package}/download/{file}")
+    if resp.ok:
+        return resp.content
+    else:
+        print(resp.text)
+        exit(1)

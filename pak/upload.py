@@ -29,4 +29,4 @@ def upload(args):
 
     if not resp.ok:
         print(resp.text)
-        os.exit(1)
+        exit(1)
