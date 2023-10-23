@@ -16,4 +16,8 @@ def run(args):
         cmd = meta.get('run_windows')
 
     cmd = cmd.split(' ') + args
-    os.execlp(cmd[0], cmd[0], ' '.join(cmd[1:]))
+    try:
+        os.execvp(cmd[0], cmd)
+    except Exception as e:
+        print(e)
+        exit(1)

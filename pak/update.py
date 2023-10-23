@@ -2,7 +2,7 @@
 import os
 import io
 import json
-import zipfile
+import tarfile
 import shutil
 
 from pak import common
@@ -39,9 +39,11 @@ def fetch_dep(dep):
     with open(os.path.join("pak", dep, "pak.json"), 'w') as f:
         f.write(pakjson.decode('utf-8'))
 
-    data = common.download(dep, 'pak.zip')
-    with zipfile.ZipFile(io.BytesIO(data)) as zf:
-        zf.extractall(os.path.join("pak", dep))
+    with open("pak/tmp.tar", "wb") as f:
+        f.write(common.download(dep, 'pak.tar'))
+    with tarfile.TarFile("pak/tmp.tar") as tf:
+        tf.extractall(os.path.join("pak", dep))
+    os.remove("pak/tmp.tar")
 
     # recursively fetch dependencies, with path set to pak/dep/pak
     deps = json.loads(pakjson)['dependencies']

@@ -3,12 +3,13 @@ import argparse
 import os
 import re
 
-mainmod = """fn main() {
+presets = {
+    'umka': {
+        'mainmod': """fn main() {
     printf("Hello, world!\\n")
 }
-"""
-
-pakjson = """{{
+    """,
+        'pakjson': """{{
     "name": "{name}",
     "version": "v0.1.0",
     "author": "{author}",
@@ -21,6 +22,38 @@ pakjson = """{{
     "run": "umka {name}.um"
 }}
 """
+    },
+    "tophat": {
+        "mainmod": """import (
+    "canvas.um"
+    "window.um"
+    "th.um"
+) 
+
+fn init*() {
+    window.setup("Hello, world!", 640, 480)
+    
+    window.onFrame.register({
+        canvas.drawText("Hello, world!", { 1, 1 }, th.black, 4)
+    })
+}
+""",
+        'pakjson': """{{
+    "name": "{name}",
+    "version": "v0.1.0",
+    "author": "{author}",
+    "license": "{license}",
+    "description": "{description}",
+    "readme": "{readme}",
+    "link": "{link}",
+    "dependencies": ["tophat"],
+    "include": ["pak/tophat/tophat", "pak/tophat/tophat.exe", "{name}.um"],
+    "run_posix": "pak/tophat/tophat -main {name}.um",
+    "run_windows": "pak/tophat/tophat.exe -main {name}.um"
+}}
+"""
+    }
+}
 
 
 def validate_name(name: str) -> bool:
@@ -32,6 +65,8 @@ def init(args):
     par = argparse.ArgumentParser(
         prog="pak init", description="Initialize a new package")
 
+    par.add_argument('preset', choices=presets.keys(),
+                     help="package preset", action="store")
     par.add_argument('-n', '--name', help="package name",
                      action="store", default=os.path.basename(os.getcwd()))
     par.add_argument('-a', '--author', help="package author",
@@ -52,11 +87,11 @@ def init(args):
         return
 
     with open(f"{ns.name}.um", "w") as f:
-        f.write(mainmod)
+        f.write(presets[ns.preset]['mainmod'])
 
     with open("pak.json", "w") as f:
-        f.write(pakjson.format(name=ns.name, author=ns.author, license=ns.license,
-                               description=ns.description, readme=ns.readme, link=ns.link))
+        f.write(presets[ns.preset]['pakjson'].format(name=ns.name, author=ns.author, license=ns.license,
+                                                     description=ns.description, readme=ns.readme, link=ns.link))
 
     try:
         os.mkdir("pak")

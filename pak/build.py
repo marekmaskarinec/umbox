@@ -1,7 +1,7 @@
 
 import subprocess
 import os
-import zipfile
+import tarfile
 
 from pak import common
 
@@ -9,20 +9,8 @@ from pak import common
 def build(args):
     meta = common.get_meta()
 
-    pre_build = []
-    pre_build += [m['pre_build'] for m in [common.get_meta_of(d)
-                                           for d in meta['dependencies']] if 'pre_build' in m]
     if 'pre_build' in meta:
-        pre_build.append(meta['pre_build'])
-
-    post_build = []
-    post_build += [m['post_build'] for m in [common.get_meta_of(d)
-                                             for d in meta['dependencies']] if 'post_build' in m]
-    if 'post_build' in meta:
-        post_build.append(meta['post_build'])
-
-    for cmd in pre_build:
-        code = subprocess.run(cmd.split(' '),
+        code = subprocess.run(meta['pre_build'].split(' '),
                               stdout=os.sys.stdout, stderr=os.sys.stderr, stdin=os.sys.stdin).returncode
 
         if code != 0:
@@ -41,12 +29,12 @@ def build(args):
                 for f in fs:
                     files.append(os.path.join(root, f))
 
-    with zipfile.ZipFile("pak.zip", 'w') as zf:
+    with tarfile.TarFile('pak.tar', 'w') as tf:
         for f in files:
-            zf.write(f, f, zipfile.ZIP_DEFLATED, compresslevel=9)
+            tf.add(f)
 
-    for cmd in post_build:
-        code = subprocess.run(cmd.split(' '),
+    if 'post_build' in meta:
+        code = subprocess.run(meta['post_build'].split(' '),
                               stdout=os.sys.stdout, stderr=os.sys.stderr, stdin=os.sys.stdin).returncode
 
         if code != 0:
