@@ -10,14 +10,14 @@ def build(args):
     meta = common.get_meta()
 
     pre_build = []
-    pre_build.append([m['pre_build'] for m in [common.get_meta_of(d)
-                     for d in meta['dependencies']] if 'pre_build' in m])
+    pre_build += [m['pre_build'] for m in [common.get_meta_of(d)
+                                           for d in meta['dependencies']] if 'pre_build' in m]
     if 'pre_build' in meta:
         pre_build.append(meta['pre_build'])
 
     post_build = []
-    post_build.append([m['post_build'] for m in [common.get_meta_of(d)
-                                                 for d in meta['dependencies']] if 'post_build' in m])
+    post_build += [m['post_build'] for m in [common.get_meta_of(d)
+                                             for d in meta['dependencies']] if 'post_build' in m]
     if 'post_build' in meta:
         post_build.append(meta['post_build'])
 

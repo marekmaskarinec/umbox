@@ -10,6 +10,7 @@ from pak import search
 from pak import update
 from pak import upload
 from pak import run
+from pak import register
 
 if __name__ == "__main__":
     par = argparse.ArgumentParser(prog="pak", description="A simple package manager for Umka",

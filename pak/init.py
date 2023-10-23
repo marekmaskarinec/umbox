@@ -18,7 +18,7 @@ pakjson = """{{
     "link": "{link}",
     "dependencies": [],
     "include": ["{name}.um"],
-    "run": "umka {name}.um",
+    "run": "umka {name}.um"
 }}
 """
 
@@ -64,7 +64,7 @@ def init(args):
         pass
 
     if os.path.isdir(".git"):
-        with os.open(".gitignore", "a") as f:
+        with open(".gitignore", "a") as f:
             f.write("pak/\n")
             f.write("pak.zip\n")
 

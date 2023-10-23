@@ -11,8 +11,11 @@ def get_meta() -> dict:
     try:
         with open("pak.json", 'r') as f:
             return json.load(f)
-    except:
+    except FileNotFoundError:
         print("Not in a pak directory")
+        exit(1)
+    except:
+        print("Could not load pak.json")
         exit(1)
 
 
@@ -32,7 +35,7 @@ def exists(package) -> bool:
 
 
 def download(package, file) -> bytearray:
-    resp = requests.get(f"{url}package/{package}/download/{file}")
+    resp = requests.get(f"{url}api/package/{package}/download/{file}")
     if resp.ok:
         return resp.content
     else:
