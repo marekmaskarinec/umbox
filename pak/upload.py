@@ -2,6 +2,7 @@
 import argparse
 import os
 import requests
+import hashlib
 
 from pak import common
 
@@ -24,7 +25,9 @@ def upload(args):
 
     meta = common.get_meta()
 
-    resp = requests.post(f"{ns.url}api/package/{meta['name']}/{ns.token}/upload/{ns.file}",
+    token = hashlib.blake2b(ns.token.encode('utf-8')).hexdigest()
+
+    resp = requests.post(f"{ns.url}api/package/{meta['name']}/{token}/upload/{ns.file}",
                          data=open(ns.file, "rb"))
 
     if not resp.ok:
