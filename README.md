@@ -5,7 +5,7 @@ A cli frontent for the PAK Umka package manager.
 ## Install
 
 ```
-pip install pak-cli
+python setup.py install
 ```
 
 ## Usage
