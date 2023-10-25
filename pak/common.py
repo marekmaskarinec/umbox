@@ -4,7 +4,7 @@ import requests
 import json
 import os
 
-url = "http://localhost:8080/"
+url = "https://pak.tophat2d.dev/"
 
 
 def get_meta() -> dict:

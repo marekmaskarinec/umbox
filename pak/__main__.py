@@ -11,6 +11,7 @@ from pak import update
 from pak import upload
 from pak import run
 from pak import register
+from pak import common
 
 if __name__ == "__main__":
     par = argparse.ArgumentParser(prog="pak", description="A simple package manager for Umka",
@@ -28,9 +29,13 @@ if __name__ == "__main__":
         "register"
     ]
 
+    par.add_argument('-u', '--url', help="pak server url",
+                     default="https://pak.tophat2d.dev/", action="store")
     par.add_argument("mode", choices=modes, help="pak mode")
 
     ns, args = par.parse_known_args()
+
+    common.url = ns.url
 
     match ns.mode:
         case 'init':
