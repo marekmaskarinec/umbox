@@ -17,9 +17,10 @@ presets = {
     "description": "{description}",
     "readme": "{readme}",
     "link": "{link}",
-    "dependencies": [],
+    "dependencies": ["umka"],
     "include": ["{name}.um"],
-    "run": "umka {name}.um"
+    "run_posix": "./pak/umka/linux/umka {name}.um",
+    "run_windows": "pak\\umka\\windows\\umka.exe {name}.um"
 }}
 """
     },
@@ -48,8 +49,8 @@ fn init*() {
     "link": "{link}",
     "dependencies": ["tophat"],
     "include": ["pak/tophat/tophat", "pak/tophat/tophat.exe", "{name}.um"],
-    "run_posix": "pak/tophat/tophat -main {name}.um",
-    "run_windows": "pak/tophat/tophat.exe -main {name}.um"
+    "run_posix": "./pak/tophat/tophat -main {name}.um",
+    "run_windows": "./pak\\tophat\\tophat.exe -main {name}.um"
 }}
 """
     }
