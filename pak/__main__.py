@@ -37,22 +37,21 @@ if __name__ == "__main__":
 
     common.url = ns.url
 
-    match ns.mode:
-        case 'init':
-            init.init(args)
-        case 'search':
-            search.search(args)
-        case 'install':
-            install.install(args)
-        case 'remove':
-            remove.remove(args)
-        case 'update':
-            update.update(args)
-        case 'upload':
-            upload.upload(args)
-        case 'build':
-            build.build(args)
-        case 'run':
-            run.run(args)
-        case 'register':
-            register.register(args)
+    if ns.mode == 'init':
+        init.init(args)
+    elif ns.mode == 'search':
+        search.search(args)
+    elif ns.mode == 'install':
+        install.install(args)
+    elif ns.mode == 'remove':
+        remove.remove(args)
+    elif ns.mode == 'update':
+        update.update(args)
+    elif ns.mode == 'upload':
+        upload.upload(args)
+    elif ns.mode == 'build':
+        build.build(args)
+    elif ns.mode == 'run':
+        run.run(args)
+    elif ns.mode == 'register':
+        register.register(args)
