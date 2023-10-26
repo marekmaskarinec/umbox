@@ -12,7 +12,7 @@ def run(args):
     if os.name == 'posix' and 'run_posix' in meta:
         cmd = meta.get('run_posix')
 
-    if os.name == 'windows' and 'run_windows' in meta:
+    if os.name == 'nt' and 'run_windows' in meta:
         cmd = meta.get('run_windows')
 
     cmd = cmd.split(' ') + args

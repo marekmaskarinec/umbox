@@ -36,7 +36,7 @@ def fetch_dep(dep):
 
     # fetch pak.json and data.zip into pak/dep
     pakjson = common.download(dep, 'pak.json')
-    with open(os.path.join("pak", dep, "pak.json"), 'w') as f:
+    with open(os.path.join("pak", dep, "pak.json"), 'w', encoding='utf-8') as f:
         f.write(pakjson.decode(encoding='utf-8', errors='replace'))
 
     with open("pak/tmp.tar", "wb") as f:
