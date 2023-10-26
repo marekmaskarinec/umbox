@@ -21,7 +21,7 @@ def upload(args):
 
     if not os.path.isfile(ns.file):
         print("File not found")
-        return
+        exit(1)
 
     meta = common.get_meta()
 
