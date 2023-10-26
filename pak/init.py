@@ -3,6 +3,8 @@ import argparse
 import os
 import re
 
+from . import update
+
 presets = {
     'umka': {
         'mainmod': """fn main() {
@@ -20,7 +22,7 @@ presets = {
     "dependencies": ["umka"],
     "include": ["{name}.um"],
     "run_posix": "./pak/umka/linux/umka {name}.um",
-    "run_windows": "pak\\umka\\windows\\umka.exe {name}.um"
+    "run_windows": ".\\\\pak\\\\umka\\\\windows\\\\umka.exe {name}.um"
 }}
 """
     },
@@ -108,3 +110,5 @@ def init(args):
         with open(ns.readme, "w") as f:
             f.write(
                 f"# {ns.name}\n\n{ns.description}\n\n## license\n\n{ns.license}\n")
+
+    update.update([])
