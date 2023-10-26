@@ -25,7 +25,7 @@ def upload(args):
 
     meta = common.get_meta()
 
-    token = hashlib.blake2b(ns.token.encode('utf-8')).hexdigest()
+    token = hashlib.blake2b(ns.token.encode(encoding='utf-8')).hexdigest()
 
     resp = requests.post(f"{ns.url}api/package/{meta['name']}/{token}/upload/{ns.file}",
                          data=open(ns.file, "rb"))

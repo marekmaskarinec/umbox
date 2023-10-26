@@ -39,5 +39,8 @@ def download(package, file) -> bytearray:
     if resp.ok:
         return resp.content
     else:
-        print(resp.text)
+        if resp.status_code == 404:
+            print("File {package}/{file} not found")
+        else:
+            print(resp.text)
         exit(1)

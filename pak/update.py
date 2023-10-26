@@ -37,7 +37,7 @@ def fetch_dep(dep):
     # fetch pak.json and data.zip into pak/dep
     pakjson = common.download(dep, 'pak.json')
     with open(os.path.join("pak", dep, "pak.json"), 'w') as f:
-        f.write(pakjson.decode('utf-8'))
+        f.write(pakjson.decode(encoding='utf-8', errors='replace'))
 
     with open("pak/tmp.tar", "wb") as f:
         f.write(common.download(dep, 'pak.tar'))
@@ -54,7 +54,8 @@ def fetch_dep(dep):
     for d in deps:
         link(os.path.join("..", "..", d), os.path.join("pak", dep, "pak", d))
 
-    versions[dep] = common.download(dep, 'version').decode('utf-8')
+    versions[dep] = common.download(dep, 'version').decode(
+        encoding='utf-8', errors='replace')
 
 
 def fetch_deps(deps):
@@ -71,7 +72,7 @@ def fetch_deps(deps):
             fetch_dep(dep)
             continue
 
-        if versions[dep] != common.download(dep, 'version').decode('utf-8'):
+        if versions[dep] != common.download(dep, 'version').decode(encoding='utf-8'):
             fetch_dep(dep)
             continue
 

@@ -69,9 +69,9 @@ def get_default_author() -> str:
     # try getting them from git
     try:
         name = subprocess.check_output(
-            ["git", "config", "user.name"]).decode("utf-8").strip()
+            ["git", "config", "user.name"]).decode(encoding="utf-8").strip()
         email = subprocess.check_output(
-            ["git", "config", "user.email"]).decode("utf-8").strip()
+            ["git", "config", "user.email"]).decode(encoding="utf-8").strip()
         return f"{name} <{email}>"
     except:
         pass
