@@ -2,6 +2,7 @@
 import argparse
 import os
 import re
+import subprocess
 
 from . import update
 
@@ -64,6 +65,20 @@ def validate_name(name: str) -> bool:
     return pat.match(name)
 
 
+def get_default_author() -> str:
+    # try getting them from git
+    try:
+        name = subprocess.check_output(
+            ["git", "config", "user.name"]).decode("utf-8").strip()
+        email = subprocess.check_output(
+            ["git", "config", "user.email"]).decode("utf-8").strip()
+        return f"{name} <{email}>"
+    except:
+        pass
+
+    return "Unknown author"
+
+
 def init(args):
     par = argparse.ArgumentParser(
         prog="pak init", description="Initialize a new package")
@@ -73,7 +88,7 @@ def init(args):
     par.add_argument('-n', '--name', help="package name",
                      action="store", default=os.path.basename(os.getcwd()))
     par.add_argument('-a', '--author', help="package author",
-                     action="store", default=os.environ['USER'])
+                     action="store", default=get_default_author())
     par.add_argument('-l', '--license', help="package license",
                      action="store", default="MIT")
     par.add_argument('-d', '--description',
