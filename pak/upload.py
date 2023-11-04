@@ -19,6 +19,11 @@ def upload(args):
 
     ns = par.parse_args(args)
 
+    if len(token) == 40:
+        print("You seem to have registered an old token.")
+    if len(token) != 64:
+        print("Invalid token")
+
     if not os.path.isfile(ns.file):
         print("File not found")
         exit(1)
