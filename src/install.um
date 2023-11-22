@@ -1,0 +1,45 @@
+
+import (
+        "std.um"
+        "common.um"
+        "update.um"
+        "../pak/io/io.um"
+)
+
+fn run*(url: str, argi: int) {
+        if argi != std.argc() - 1 {
+                printf("Usage: pak install <package_name>\n")
+                return
+        }
+        
+        name := std.argv(argi)
+
+        ok, meta := common.getMeta("pak.json") 
+        if !ok {
+                printf("Not in a PAK directory.\n")
+                return
+        }
+
+        if !common.exists(name) {
+                printf("Package '%s' does not exist.\n", name)
+                return
+        }
+
+        exists := false
+        for i,dep in meta.dependencies {
+                if dep == name {
+                        exists = true
+                        break
+                }
+        }
+
+        if !exists {
+                meta.dependencies = append(meta.dependencies, name)
+        }
+
+        f := io.open("pak.json", "w")
+        f.write(meta.toJSON())
+        f.close()
+
+        update.run(url, std.argc())
+}

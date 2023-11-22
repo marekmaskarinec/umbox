@@ -1,4 +1,3 @@
 test
-build
-dist
-pak.egg-info
+pak/
+pak.tar

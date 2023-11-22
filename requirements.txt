@@ -1,2 +1,0 @@
-Requests==2.31.0
-setuptools==59.6.0

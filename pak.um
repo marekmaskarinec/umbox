@@ -1,0 +1,77 @@
+import (
+    "std.um"
+    
+    "src/build.um"
+    "src/init.um"
+    "src/install.um"
+    "src/remove.um"
+    "src/run.um"
+    "src/search.um"
+    "src/update.um"
+    "src/register.um"
+)
+
+fn help() {
+    printf("PAK - an umka package manager\n\n" +
+        "Arguments:\n" +
+        "\t-h, --help - Display this help message\n" +
+        "\t-u, --url - Specify the PAK server URL (Default: https://pak.tophat2d.dev/)\n\n" +
+        "Modes:\n" +
+        "\tbuild - Build a pak.tar\n" +
+        "\tinit - Initialize a package\n" +
+        "\tinstall - Install a package\n" +
+        "\tremove - Remove a package\n" +
+        "\trun - Run the current package\n" +
+        "\tsearch - Search for a package\n" +
+        "\tupdate - Update installed package\n" + 
+        "\tregister - Register a package\n"
+    )
+}
+
+fn main() {
+    url := "https://pak.tophat2d.dev/"
+             
+    if std.argc() == 1 {
+        help()
+        return
+    }
+
+    for i:=1; i < std.argc(); i++ {
+        if std.argv(i) == "-h" || std.argv(i) == "--help" {
+            help()
+            return
+        } else if std.argv(i) == "-u" || std.argv(i) == "--url" {
+            if i == std.argc() - 1 {
+                printf("--url requires an argument")
+                return
+            }
+            
+            url = std.argv(i + 1)
+            i += 1
+        } else {
+            if std.argv(i) == "build" {
+                build.run(url, i + 1)
+            } else if std.argv(i) == "init" {
+                init.run(url, i + 1)
+            } else if std.argv(i) == "install" {
+                install.run(url, i + 1)
+            } else if std.argv(i) == "remove" {
+                remove.run(url, i + 1)
+            } else if std.argv(i) == "run" {
+                run.run(url, i + 1)
+            } else if std.argv(i) == "search" {
+                search.run(url, i + 1)
+            } else if std.argv(i) == "update" {
+                update.run(url, i + 1)
+            } else if std.argv(i) == "register" {
+                register.run(url, i + 1)
+            } else {
+                printf("Unknown command: %s\n", std.argv(i))
+                help()
+                return
+            }
+            
+            break
+        }
+    }
+}

@@ -1,0 +1,150 @@
+
+import (
+        "../pak/os/os.um"        
+        "../pak/json/json.um"
+        "../pak/filepath/filepath.um"
+        "../pak/tar/tar.um"
+        "../pak/io/io.um"
+        "../pak/jsonenc/jsonenc.um"
+
+        "std.um"
+        "common.um"
+)
+
+fn fetchDeps(deps: []str, versions: ^map[str]str, touched: ^map[str]bool)
+
+fn fetchDep(dep: str, versions: ^map[str]str, touched: ^map[str]bool) {
+        if !common.exists(dep) {
+                printf("No such package: %s\n", dep)
+                exit()
+        }
+        
+        os.mkdirp(filepath.join("pak", dep))
+                
+        // fetch pak.json
+        pakjson := str([]char(common.download(dep, "pak.json")))
+        f := io.open(filepath.join("pak", dep, "pak.json"), "w")
+        f.write(pakjson)
+        f.close()
+        
+        // fetch and extract pak.tar
+        tf, err := tar.openBytes(common.download(dep, "pak.tar"))
+        if err != 0 {
+                printf("Error parsing pak.tar: %s\n", tar.strerror(err))
+                exit()
+        }
+        
+        err = tf.extract(filepath.join("pak", dep, ""))
+        if err != 0 {
+                printf("Error extracting pak.tar: %s\n", tar.strerror(err))
+                exit()
+        }
+        
+        // Fetch dependencies
+        ok, meta := common.getMeta(filepath.join("pak", dep, "pak.json"))
+        if !ok {
+                printf("Error parsing %s\n", filepath.join("pak", dep, "pak.json"))
+                exit()
+        }
+        fetchDeps(meta.dependencies, versions, touched)
+        
+        // Create symlinks for dependencies
+        os.mkdirp(filepath.join("pak", dep, "pak"))
+        for i,d in meta.dependencies {
+                os.link(filepath.join("..", "..", d), filepath.join("pak", dep, "pak", d))
+        }
+              
+        versions[dep] = str([]char(common.download(dep, "version")))
+}
+
+fn fetchDeps(deps: []str, versions: ^map[str]str, touched: ^map[str]bool) {
+        for i,dep in deps {
+                touched[dep] = true
+
+                // If the dependency doesn't exist, fetch it.
+                if !os.isdir(filepath.join("pak", dep)) {
+                        printf("Downloading %s...\n", dep)
+                        fetchDep(dep, versions, touched)
+                        continue
+                }
+                
+                // If the dependency doesn't have a known version, fetch it.
+                if !validkey(versions^, dep) {
+                        printf("Downloading %s...\n", dep)
+                        fetchDep(dep, versions, touched)
+                        continue
+                }
+                
+                // Check for new versions.
+                if versions[dep] != str([]char(common.download(dep, "version"))) {
+                        printf("Updating %s...\n", dep)
+                        fetchDep(dep, versions, touched)
+                        continue
+                }
+                
+                // Touch all the dependencies of the dependency.
+                _, meta := common.getMeta(filepath.join("pak", dep, "pak.json"))
+                for i,d in meta.dependencies {
+                        touched[d] = true
+                }
+        }
+}
+
+fn run*(url: str, argi: int) {
+        if argi != std.argc() {
+                printf("Too many arguments.\n")
+                return
+        }
+
+        ok, meta := common.getMeta("pak.json")
+        if !ok {
+                printf("Not in a PAK directory.\n")
+                return
+        }
+        
+        os.mkdirp("pak")
+
+        versions := map[str]str{}
+        if os.isfile(filepath.join("pak", "versions.json")) {
+                r := map[str]any(json.parse(io.readall(filepath.join("pak", "versions.json"))))
+                for k,v in r {
+                        versions[k] = str(v)
+                }
+        }
+        
+        touched := map[str]bool{}
+        
+        fetchDeps(meta.dependencies, &versions, &touched)
+                
+        enc := jsonenc.mk(true)
+        enc.startObject()
+        for k,v in versions {
+                enc.putKey(k)
+                enc.putVal(v)
+        }
+        enc.endObject()
+
+        f := io.open(filepath.join("pak", "versions.json"), "w")
+        f.write(enc.toStr())
+        f.close()
+        
+        ls, _ := os.listdir("pak")
+        for i,d in ls {
+                if d == "versions.json" || d == "." || d == ".." {
+                        continue
+                }
+
+                if !touched[d] {
+                        printf("Removing %s...\n", d)
+                        os.walk(filepath.join("pak", d), fn(path: str) |d| {
+                                printf("Removing %s\n", path)
+                                err := os.remove(path)
+                                if err != 0 {
+                                        printf("Error removing %s: %s\n", path, os.strerror(err))
+                                }
+                        })
+                        
+                        os.remove(filepath.join("pak", d))
+                }
+        }
+}

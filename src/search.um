@@ -1,0 +1,34 @@
+
+import (
+        "../pak/http/http.um"
+        "../pak/json/json.um"
+        "std.um"
+        
+        "common.um"
+)
+
+fn run*(url: str, argi: int) {
+        if argi != std.argc() - 1 {
+                printf("Usage: pak search <query>\n")
+                return
+        }
+
+        query := std.argv(argi)
+
+        resp := http.get(sprintf("%s/api/search/%s", url, query))
+        if !resp.ok {
+                printf("Search failed: %s", resp.err)
+                return
+        }
+
+        r := ^[]any(json.parse(str([]char(resp.body))))
+        if r == null {
+                printf("Search failed.\n")
+        }
+
+        res := []map[str]any(r^)
+
+        for i,r in res {
+                printf("%s - %s\n", str(r["name"]), str(r["description"]))
+        }
+}

@@ -1,0 +1,22 @@
+
+import (
+        "std.um"
+        "../pak/http/http.um"
+)
+
+fn run*(url: str, argi: int) {
+        if argi != std.argc() - 1 {
+                printf("Usage: pak search <query>\n")
+                return
+        }
+        
+        name := std.argv(argi)
+
+        resp := http.get(sprintf("%s/api/register/%s", url, name))
+        if !resp.ok {
+                printf("Registering failed: %s", resp.err)
+                return
+        }
+              
+        printf("%s\n", str([]char(resp.body)))
+}

@@ -1,19 +1,7 @@
-# PAK
+# pak
 
-A cli frontent for the PAK Umka package manager.
 
-## Install
 
-```
-python setup.py install
-```
+## license
 
-## Usage
-
-```
-pak -h
-```
-
-## License
-
-See LICENSE in the root of the repository.
+MIT

@@ -1,0 +1,27 @@
+
+import (
+        "common.um"
+        
+        "../pak/os/os.um"
+        "../pak/filepath/filepath.um"
+        "../pak/io/io.um"
+)
+
+fn run*(url: str, argi: int) {
+        if os.isfile("pak.json") {
+                printf("A pak.json already exists in this directory.\n")
+                return
+        }
+
+        cwd, _ := os.getCwd()
+        meta := common.Meta{
+                name: filepath.file(cwd),
+                version: "v0.1.0",
+                license: "Unknown",
+                readme: "README.md"
+        }
+
+        f := io.open("pak.json", "w")
+        f.write(meta.toJSON())
+        f.close()
+}

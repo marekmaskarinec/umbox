@@ -1,0 +1,48 @@
+
+import (
+        "common.um"
+        "std.um"
+        "../pak/os/os.um"
+        "../pak/filepath/filepath.um"
+)
+
+fn run*(url: str, argi: int) {
+        ok, meta := common.getMeta("pak.json") 
+        if !ok {
+                printf("Not in a PAK directory.\n")
+                return
+        }
+        
+        args := ""
+        for i := argi; i < std.argc(); i++ {
+                args += " " + std.argv(i)
+        }
+              
+        cmd := meta.run
+        pathSep := ""
+        
+        if os.getPlatform() == os.PlatformPosix {
+                if len(meta.runPosix) != 0 {
+                        cmd = meta.runPosix
+                }
+                
+                pathSep = ":"
+        }
+             
+        if os.getPlatform() == os.PlatformWindows {
+                if len(meta.runWindows) != 0 {
+                        cmd = meta.runWindows
+                }
+                
+                pathSep = ";"
+        }
+        
+        path := std.getenv("PATH")
+        for i,d in meta.dependencies {
+                cwd, err := os.getCwd()
+                path = filepath.join(cwd, "pak", d) + pathSep + path
+        }
+        os.setEnv("PATH", path)
+                
+        std.system(cmd + args)
+}
