@@ -13,6 +13,11 @@ fn run*(url: str, argi: int) {
                 return
         }
 
+        if os.isfile("pak") || os.isdir("pak") {{
+                printf("A file or a directory named pak already exists in this directory.\n")
+                return
+        }
+
         cwd, _ := os.getCwd()
         meta := common.Meta{
                 name: filepath.file(cwd),
