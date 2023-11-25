@@ -8,6 +8,4 @@ for /d %%i in (%DIR%dat/pak\*) do (
 	set "PATH=!PATH!;!currentDir!"
 )
 
-where curl-ca-bundle.crt
-
 %DIR%dat\pak\umka\windows\umka.exe %DIR%dat\pak.um %*
