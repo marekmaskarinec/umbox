@@ -8,6 +8,11 @@ import (
 )
 
 fn run*(url: str, argi: int) {
+        if argi != std.argc() - 1 {
+                printf("Usage: pak init\nPresets are not yet supported.\n")
+                return
+        }
+
         if os.isfile("pak.json") {
                 printf("A pak.json already exists in this directory.\n")
                 return
