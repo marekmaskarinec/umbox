@@ -9,7 +9,9 @@ Name "${NAME}"
 Outfile "../${NAME}_install.exe"
 InstallDir "$LOCALAPPDATA\pak"
 
-!define MUI_WELCOMEPAGE_TITLE "${SLUG} Setup"
+!define MUI_WELCOMEPAGE_TITLE "Welcome to the ${SLUG} Setup"
+!define MUI_WELCOMEPAGE_TEXT "Setup will guide you through the installation of the PAK package manager.$\n$\nClick next to continue."
+!define MUI_WELCOMEFINISHPAGE_BITMAP "../etc/welcome.bmp"
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "../LICENSE"
@@ -29,3 +31,8 @@ Section "-hidden app"
     ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR"
 SectionEnd
 
+Section Uninstall
+    RMDir /r "$INSTDIR"
+    ${un.EnvVarUpdate} $0 "PATH" "R" "HKLM" "$INSTDIR"
+    SetAutoClose false
+SectionEnd
