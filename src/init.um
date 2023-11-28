@@ -9,7 +9,7 @@ import (
 )
 
 fn run*(url: str, argi: int) {
-        if argi != std.argc() - 1 {
+        if argi != std.argc() {
                 printf("Usage: pak init\nPresets are not yet supported.\n")
                 return
         }
