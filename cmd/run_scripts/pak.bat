@@ -8,4 +8,4 @@ for /d %%i in (%DIR%dat/pak\*) do (
 	set "PATH=!PATH!;!currentDir!"
 )
 
-%DIR%dat\pak\umka\windows\umka.exe %DIR%dat\pak.um %*
+"%DIR%dat\pak\umka\windows\umka.exe" "%DIR%dat\pak.um" %*

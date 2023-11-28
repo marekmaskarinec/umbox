@@ -1,0 +1,31 @@
+!include "MUI2.nsh"
+!include "EnvVarUpdate.nsh"
+
+!define NAME "pak"
+!define VERSION "v0.1.0"
+!define SLUG "${NAME} ${VERSION}"
+
+Name "${NAME}"
+Outfile "../${NAME}_install.exe"
+InstallDir "$LOCALAPPDATA\pak"
+
+!define MUI_WELCOMEPAGE_TITLE "${SLUG} Setup"
+
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE "../LICENSE"
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+Section "-hidden app"
+    SectionIn RO
+    SetOutPath "$INSTDIR"
+    File /r "../pak_portable/*.*" 
+    WriteRegStr HKCU "Software\${NAME}" "" $INSTDIR
+    WriteUninstaller "$INSTDIR\Uninstall.exe"
+    
+    ${EnvVarUpdate} $0 "PATH" "A" "HKLM" "$INSTDIR"
+SectionEnd
+

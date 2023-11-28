@@ -4,6 +4,7 @@ import (
         "std.um"
         "../pak/os/os.um"
         "../pak/filepath/filepath.um"
+        "../pak/strings/strings.um"
 )
 
 fn run*(url: str, argi: int) {
@@ -43,6 +44,10 @@ fn run*(url: str, argi: int) {
                 path = filepath.join(cwd, "pak", d) + pathSep + path
         }
         os.setEnv("PATH", path)
-                
+
+        cmdSp := strings.split(cmd, " ")
+        cmdSp[0] = filepath.toslash(cmdSp[0])
+        cmd = strings.join(cmdSp, " ")
+
         std.system(cmd + args)
 }

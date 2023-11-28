@@ -13,7 +13,8 @@
         "json",
         "jsonenc",
         "os",
-        "tar"
+        "tar",
+        "strings"
     ],
     "include": [],
     "run_posix": "./pak/umka/linux/umka pak.um",

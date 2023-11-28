@@ -1,6 +1,7 @@
 
 import (
         "common.um"
+        "std.um"
         
         "../pak/os/os.um"
         "../pak/filepath/filepath.um"
@@ -18,7 +19,7 @@ fn run*(url: str, argi: int) {
                 return
         }
 
-        if os.isfile("pak") || os.isdir("pak") {{
+        if os.isfile("pak") || os.isdir("pak") {
                 printf("A file or a directory named pak already exists in this directory.\n")
                 return
         }

@@ -1,10 +1,15 @@
 
 SRCS=pak.um src/*.um pak/versions.json
 VERSION=$(shell jq .version <pak.json)
-PORTABLE=pak_portable-$(VERSION).zip
+PORTABLE=pak_portable
+PORTABLE_ZIP=pak_portable-$(VERSION).zip
+WIN_INSTALLER=pak_install.exe
 
 .PHONY: all clean
-all: $(PORTABLE)
+all: $(PORTABLE_ZIP) $(WIN_INSTALLER)
+	
+clean:
+	rm -rf $(PORTABLE) $(PORTABLE_ZIP) $(WIN_INSTALLER)
 
 $(PORTABLE): $(SRCS) Makefile
 	@echo "BU pak_portable.zip"
@@ -14,6 +19,11 @@ $(PORTABLE): $(SRCS) Makefile
 	cp -r pak.um src pak/ pak_portable/dat
 	cp README.md pak_portable
 	cp LICENSE pak_portable
+
+$(PORTABLE_ZIP): $(PORTABLE)
+	zip -r $(PORTABLE_ZIP) $(PORTABLE)
 	
-	zip -r $(PORTABLE) pak_portable
-	rm -r pak_portable
+$(WIN_INSTALLER): $(PORTABLE) cmd/installer.nsis
+	@echo "BU pak_install.exe"
+	@echo "  (requires makensis)"
+	makensis cmd/installer.nsis
