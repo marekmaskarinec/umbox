@@ -1,38 +1,72 @@
 
 import (
         "common.um"
+	"update.um"
         "std.um"
         
-        "../pak/os/os.um"
+	"../pak/tar/tar.um"
         "../pak/filepath/filepath.um"
         "../pak/io/io.um"
+        "../pak/os/os.um"
 )
 
+fn downloadPreset(packageName: str): (common.Meta, str) {
+	dat := common.download(packageName, "init.tar")
+
+	tf, err := tar.openBytes(dat)
+	if err != 0 {
+		return {}, tar.strerror(err)
+	}
+
+	err = tf.extract(".")
+	if err != 0 {
+		return {}, tar.strerror(err)
+	}
+
+	ok, m := common.getMeta("pak.json")
+	if !ok {
+		return m, "pak.json is invalid"
+	}
+	return m, ""
+}
+
 fn run*(url: str, argi: int) {
-        if argi != std.argc() {
-                printf("Usage: pak init\nPresets are not yet supported.\n")
-                return
-        }
+	if argi != 2 {
+		printf("Usage: pak init [<preset>]\n")
+		return
+	}
 
-        if os.isfile("pak.json") {
-                printf("A pak.json already exists in this directory.\n")
-                return
-        }
+	if ls, err := os.listdir("."); len(ls) > 2 {
+		printf("%v\n", ls)
+		printf("Refusing to init a package in a non-empty directory\n")
+		return
+	}
 
-        if os.isfile("pak") || os.isdir("pak") {
-                printf("A file or a directory named pak already exists in this directory.\n")
-                return
-        }
+	m := common.Meta{
+		version: "v0.1.0",
+		readme: "README.md"
+	}
+	if argi == std.argc() - 1 {
+		preset := std.argv(argi)
+		if !common.exists(preset) {
+			printf("%s doesn't exist\n", preset)
+			return
+		}
 
-        cwd, _ := os.getCwd()
-        meta := common.Meta{
-                name: filepath.file(cwd),
-                version: "v0.1.0",
-                license: "Unknown",
-                readme: "README.md"
-        }
+		var err: str
+		m, err = downloadPreset(preset)
+		if len(err) != 0 {
+			printf("Could not download preset: %s\n", err)
+			return
+		}
+	}
 
-        f := io.open("pak.json", "w")
-        f.write(meta.toJSON())
-        f.close()
+	name, err := os.getCwd()
+	m.name = filepath.file(name)
+
+	f := io.open("pak.json", "w")
+	f.write(m.toJSON())
+	f.close()
+
+	update.run(url, std.argc() - 1)
 }

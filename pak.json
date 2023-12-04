@@ -1,22 +1,24 @@
 {
-    "name": "pak",
-    "version": "v0.1.0",
-    "author": "Marek Ma\u0161karinec <marek@mrms.cz>",
-    "license": "MIT",
-    "description": "",
-    "readme": "README.md",
-    "link": "",
-    "dependencies": [
-        "http",
-        "io",
-        "filepath",
-        "json",
-        "jsonenc",
-        "os",
-        "tar",
-        "strings"
-    ],
-    "include": [],
-    "run_posix": "./pak/umka/linux/umka pak.um",
-    "run_windows": "./pak/umka/windows/umka.exe pak.um"
+	"name": "pak",
+	"version": "v0.1.0",
+	"author": "Marek Ma\u0161karinec <marek@mrms.cz>",
+	"license": "MIT",
+	"description": "",
+	"readme": "README.md",
+	"link": "",
+	"dependencies": [
+		"http",
+		"io",
+		"filepath",
+		"json",
+		"jsonenc",
+		"os",
+		"tar",
+		"strings",
+		"blake2"
+	],
+	"include": [
+	],
+	"run_posix": "./pak/umka/linux/umka pak.um",
+	"run_windows": "./pak/umka/windows/umka.exe pak.um"
 }
