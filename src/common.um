@@ -1,5 +1,6 @@
 
 import (
+        "std.um"
         "../pak/os/os.um"
         "../pak/json/json.um"
         "../pak/io/io.um"
@@ -78,7 +79,9 @@ fn getMeta*(path: str): (bool, Meta) {
                 return false, {}
         }
         
-        r := ^map[str]any(json.parse(io.readall(path)))
+        f := std.fopen(path, "r")
+        r := ^map[str]any(json.parse(str([]char(io.mkFile(f).read()))))
+        std.fclose(f)
         if r == null {
                 return false, {}
         }
@@ -178,7 +181,8 @@ fn getMeta*(path: str): (bool, Meta) {
 }
 
 fn download*(package, file: str): []uint8 {
-        resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), {
+        w := io.mkMemory({})
+        resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
                 userAgent: "pak-cli"
         })
         
@@ -187,11 +191,12 @@ fn download*(package, file: str): []uint8 {
                 exit()
         }
         
-        return resp.body
+        return w.read()
 }
 
 fn exists*(package: str): bool {
-        resp := http.get(sprintf("%s/api/package/%s/download/version", url, package), {
+        w := io.mkMemory({})
+        resp := http.get(sprintf("%s/api/package/%s/download/version", url, package), w, {
                 userAgent: "pak-cli"
         })
 

@@ -64,9 +64,9 @@ fn run*(url: str, argi: int) {
 	name, err := os.getCwd()
 	m.name = filepath.file(name)
 
-	f := io.open("pak.json", "w")
-	f.write(m.toJSON())
-	f.close()
+	f := std.fopen("pak.json", "w")
+	fprintf(f, "%s", m.toJSON())
+	std.fclose(f)
 
 	update.run(url, std.argc() - 1)
 }

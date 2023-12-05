@@ -27,9 +27,9 @@ fn run*(url: str, argi: int) {
                 }
         }
       
-        f := io.open("pak.json", "w")
-        f.write(meta.toJSON())
-        f.close()
+        f := std.fopen("pak.json", "w")
+        fprintf(f, "%s", meta.toJSON())
+        std.fclose(f)
 
         update.run(url, std.argc())
 }

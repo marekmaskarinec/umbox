@@ -1,0 +1,52 @@
+
+import (
+    "std.um"
+    "../pak/os/os.um"
+    "../pak/io/io.um"
+    "../pak/http/http.um"
+    "../pak/blake2/blake2.um"
+    "../pak/filepath/filepath.um"
+    "common.um"
+)
+
+fn run*(url: str, argi: int) {
+    if argi != std.argc() - 2 {
+        printf("usage: upload <token> <file>\n")
+        return
+    }
+    
+    token := std.argv(argi)
+    file := std.argv(argi + 1)
+    
+    if !os.isfile(file) {
+        printf("File not found\n")
+        return
+    }
+           
+    if len(token) != 64 {
+        printf("Invalid token\n")
+        return
+    }
+    
+    ok, meta := common.getMeta("pak.json")
+    if !ok {
+        printf("Not in a PAK directory\n")
+        return
+    }
+                
+    tokenHash := blake2.blake2b([]uint8([]char(token)))
+    tokenHashStr := ""
+    for i,b in tokenHash {
+        tokenHashStr += sprintf("%02x", b)
+    }
+    f := std.fopen(file, "rb")
+    r := io.mkFile(f)
+    w := io.mkMemory({})
+    reqUrl := sprintf("%sapi/package/%s/%s/upload/%s", url, meta.name, tokenHashStr, filepath.file(file))
+    resp := http.post(reqUrl, r, w)
+    
+    if resp.status != 200 {
+        printf("Upload failed: %s\n", str([]char(w.read())))
+        return
+    }
+}

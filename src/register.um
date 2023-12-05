@@ -2,21 +2,23 @@
 import (
         "std.um"
         "../pak/http/http.um"
+        "../pak/io/io.um"
 )
 
 fn run*(url: str, argi: int) {
         if argi != std.argc() - 1 {
-                printf("Usage: pak search <query>\n")
+                printf("Usage: pak register <query>\n")
                 return
         }
         
         name := std.argv(argi)
 
-        resp := http.get(sprintf("%s/api/register/%s", url, name))
+        w := io.mkMemory({})
+        resp := http.get(sprintf("%s/api/register/%s", url, name), w)
         if !resp.ok {
                 printf("Registering failed: %s", resp.err)
                 return
         }
               
-        printf("%s\n", str([]char(resp.body)))
+        printf("%s\n", str([]char(w.read())))
 }

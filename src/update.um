@@ -23,9 +23,9 @@ fn fetchDep(dep: str, versions: ^map[str]str, touched: ^map[str]bool) {
                 
         // fetch pak.json
         pakjson := str([]char(common.download(dep, "pak.json")))
-        f := io.open(filepath.join("pak", dep, "pak.json"), "w")
-        f.write(pakjson)
-        f.close()
+        f := std.fopen(filepath.join("pak", dep, "pak.json"), "w")
+        fprintf(f, "%s", pakjson)
+        std.fclose(f)
         
         // fetch and extract pak.tar
         tf, err := tar.openBytes(common.download(dep, "pak.tar"))
@@ -106,7 +106,9 @@ fn run*(url: str, argi: int) {
 
         versions := map[str]str{}
         if os.isfile(filepath.join("pak", "versions.json")) {
-                r := map[str]any(json.parse(io.readall(filepath.join("pak", "versions.json"))))
+                f := std.fopen(filepath.join("pak", "versions.json"), "r")
+                r := map[str]any(json.parse(str([]char(io.mkFile(f)))))
+                std.fclose(f)
                 for k,v in r {
                         versions[k] = str(v)
                 }
@@ -124,9 +126,9 @@ fn run*(url: str, argi: int) {
         }
         enc.endObject()
 
-        f := io.open(filepath.join("pak", "versions.json"), "w")
-        f.write(enc.toStr())
-        f.close()
+        f := std.fopen(filepath.join("pak", "versions.json"), "w")
+        fprintf(f, "%s", enc.toStr())
+        std.fclose(f)
         
         ls, _ := os.listdir("pak")
         for i,d in ls {

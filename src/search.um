@@ -1,6 +1,7 @@
 
 import (
         "../pak/http/http.um"
+        "../pak/io/io.um"
         "../pak/json/json.um"
         "std.um"
         
@@ -15,13 +16,14 @@ fn run*(url: str, argi: int) {
 
         query := std.argv(argi)
 
-        resp := http.get(sprintf("%s/api/search/%s", url, query))
+        w := io.mkMemory({})
+        resp := http.get(sprintf("%s/api/search/%s", url, query), w)
         if !resp.ok {
                 printf("Search failed: %s", resp.err)
                 return
         }
 
-        r := ^[]any(json.parse(str([]char(resp.body))))
+        r := ^[]any(json.parse(str([]char(w.read()))))
         if r == null {
                 printf("Search failed.\n")
         }
