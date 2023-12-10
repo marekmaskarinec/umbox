@@ -2,15 +2,15 @@
 import (
         "common.um"
         "std.um"
-        "../pak/os/os.um"
-        "../pak/filepath/filepath.um"
-        "../pak/strings/strings.um"
+        "../umbox/os/os.um"
+        "../umbox/filepath/filepath.um"
+        "../umbox/strings/strings.um"
 )
 
 fn run*(url: str, argi: int) {
-        ok, meta := common.getMeta("pak.json") 
+        ok, meta := common.getMeta("box.json") 
         if !ok {
-                printf("Not in a PAK directory.\n")
+                printf("Not in an UmBox directory.\n")
                 return
         }
         
@@ -41,7 +41,7 @@ fn run*(url: str, argi: int) {
         path := std.getenv("PATH")
         for i,d in meta.dependencies {
                 cwd, err := os.getCwd()
-                path = filepath.join(cwd, "pak", d) + pathSep + path
+                path = filepath.join(cwd, "umbox", d) + pathSep + path
         }
         os.setEnv("PATH", path)
 

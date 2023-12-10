@@ -1,0 +1,5 @@
+#!/bin/sh
+
+DIR=$(dirname $(readlink -f $0))
+
+$DIR/dat/umbox/umka/linux/umka $DIR/dat/umbox.um $@

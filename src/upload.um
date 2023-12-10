@@ -1,17 +1,17 @@
 
 import (
     "std.um"
-    "../pak/os/os.um"
-    "../pak/io/io.um"
-    "../pak/http/http.um"
-    "../pak/blake2/blake2.um"
-    "../pak/filepath/filepath.um"
+    "../umbox/os/os.um"
+    "../umbox/io/io.um"
+    "../umbox/http/http.um"
+    "../umbox/blake2/blake2.um"
+    "../umbox/filepath/filepath.um"
     "common.um"
 )
 
 fn run*(url: str, argi: int) {
     if argi != std.argc() - 2 {
-        printf("usage: upload <token> <file>\n")
+        printf("usage: umbox upload <token> <file>\n")
         return
     }
     
@@ -28,9 +28,9 @@ fn run*(url: str, argi: int) {
         return
     }
     
-    ok, meta := common.getMeta("pak.json")
+    ok, meta := common.getMeta("box.json")
     if !ok {
-        printf("Not in a PAK directory\n")
+        printf("Not in an UmBox directory\n")
         return
     }
                 

@@ -1,13 +1,13 @@
 
 import (
-        "common.um"
+	"common.um"
 	"update.um"
-        "std.um"
+	"std.um"
         
-	"../pak/tar/tar.um"
-        "../pak/filepath/filepath.um"
-        "../pak/io/io.um"
-        "../pak/os/os.um"
+	"../umbox/tar/tar.um"
+	"../umbox/filepath/filepath.um"
+	"../umbox/io/io.um"
+	"../umbox/os/os.um"
 )
 
 fn downloadPreset(packageName: str): (common.Meta, str) {
@@ -23,22 +23,22 @@ fn downloadPreset(packageName: str): (common.Meta, str) {
 		return {}, tar.strerror(err)
 	}
 
-	ok, m := common.getMeta("pak.json")
+	ok, m := common.getMeta("box.json")
 	if !ok {
-		return m, "pak.json is invalid"
+		return m, "box.json is invalid"
 	}
 	return m, ""
 }
 
 fn run*(url: str, argi: int) {
 	if argi != 2 {
-		printf("Usage: pak init [<preset>]\n")
+		printf("Usage: umbox init [<preset>]\n")
 		return
 	}
 
 	if ls, err := os.listdir("."); len(ls) > 2 {
 		printf("%v\n", ls)
-		printf("Refusing to init a package in a non-empty directory\n")
+		printf("Refusing to init a box in a non-empty directory\n")
 		return
 	}
 
@@ -64,7 +64,7 @@ fn run*(url: str, argi: int) {
 	name, err := os.getCwd()
 	m.name = filepath.file(name)
 
-	f := std.fopen("pak.json", "w")
+	f := std.fopen("box.json", "w")
 	fprintf(f, "%s", m.toJSON())
 	std.fclose(f)
 

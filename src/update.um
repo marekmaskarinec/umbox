@@ -1,11 +1,11 @@
 
 import (
-        "../pak/os/os.um"        
-        "../pak/json/json.um"
-        "../pak/filepath/filepath.um"
-        "../pak/tar/tar.um"
-        "../pak/io/io.um"
-        "../pak/jsonenc/jsonenc.um"
+        "../umbox/os/os.um"        
+        "../umbox/json/json.um"
+        "../umbox/filepath/filepath.um"
+        "../umbox/tar/tar.um"
+        "../umbox/io/io.um"
+        "../umbox/jsonenc/jsonenc.um"
 
         "std.um"
         "common.um"
@@ -19,39 +19,39 @@ fn fetchDep(dep: str, versions: ^map[str]str, touched: ^map[str]bool) {
                 exit()
         }
         
-        os.mkdirp(filepath.join("pak", dep))
+        os.mkdirp(filepath.join("umbox", dep))
                 
-        // fetch pak.json
-        pakjson := str([]char(common.download(dep, "pak.json")))
-        f := std.fopen(filepath.join("pak", dep, "pak.json"), "w")
-        fprintf(f, "%s", pakjson)
+        // fetch box.json
+        umboxjson := str([]char(common.download(dep, "box.json")))
+        f := std.fopen(filepath.join("umbox", dep, "box.json"), "w")
+        fprintf(f, "%s", umboxjson)
         std.fclose(f)
         
-        // fetch and extract pak.tar
-        tf, err := tar.openBytes(common.download(dep, "pak.tar"))
+        // fetch and extract box.tar
+        tf, err := tar.openBytes(common.download(dep, "box.tar"))
         if err != 0 {
-                printf("Error parsing pak.tar: %s\n", tar.strerror(err))
+                printf("Error parsing box.tar: %s\n", tar.strerror(err))
                 exit()
         }
         
-        err = tf.extract(filepath.join("pak", dep, ""))
+        err = tf.extract(filepath.join("umbox", dep, ""))
         if err != 0 {
-                printf("Error extracting pak.tar: %s\n", tar.strerror(err))
+                printf("Error extracting box.tar: %s\n", tar.strerror(err))
                 exit()
         }
         
         // Fetch dependencies
-        ok, meta := common.getMeta(filepath.join("pak", dep, "pak.json"))
+        ok, meta := common.getMeta(filepath.join("umbox", dep, "box.json"))
         if !ok {
-                printf("Error parsing %s\n", filepath.join("pak", dep, "pak.json"))
+                printf("Error parsing %s\n", filepath.join("umbox", dep, "box.json"))
                 exit()
         }
         fetchDeps(meta.dependencies, versions, touched)
         
         // Create symlinks for dependencies
-        os.mkdirp(filepath.join("pak", dep, "pak"))
+        os.mkdirp(filepath.join("umbox", dep, "umbox"))
         for i,d in meta.dependencies {
-                os.link(filepath.join("..", "..", d), filepath.join("pak", dep, "pak", d))
+                os.link(filepath.join("..", "..", d), filepath.join("umbox", dep, "umbox", d))
         }
               
         versions[dep] = str([]char(common.download(dep, "version")))
@@ -62,7 +62,7 @@ fn fetchDeps(deps: []str, versions: ^map[str]str, touched: ^map[str]bool) {
                 touched[dep] = true
 
                 // If the dependency doesn't exist, fetch it.
-                if !os.isdir(filepath.join("pak", dep)) {
+                if !os.isdir(filepath.join("umbox", dep)) {
                         printf("Downloading %s...\n", dep)
                         fetchDep(dep, versions, touched)
                         continue
@@ -83,7 +83,7 @@ fn fetchDeps(deps: []str, versions: ^map[str]str, touched: ^map[str]bool) {
                 }
                 
                 // Touch all the dependencies of the dependency.
-                _, meta := common.getMeta(filepath.join("pak", dep, "pak.json"))
+                _, meta := common.getMeta(filepath.join("umbox", dep, "box.json"))
                 for i,d in meta.dependencies {
                         touched[d] = true
                 }
@@ -96,18 +96,18 @@ fn run*(url: str, argi: int) {
                 return
         }
 
-        ok, meta := common.getMeta("pak.json")
+        ok, meta := common.getMeta("box.json")
         if !ok {
-                printf("Not in a PAK directory.\n")
+                printf("Not in an UmBox directory.\n")
                 return
         }
         
-        os.mkdirp("pak")
+        os.mkdirp("umbox")
 
         versions := map[str]str{}
-        if os.isfile(filepath.join("pak", "versions.json")) {
-                f := std.fopen(filepath.join("pak", "versions.json"), "r")
-                r := map[str]any(json.parse(str([]char(io.mkFile(f)))))
+        if os.isfile(filepath.join("umbox", "versions.json")) {
+                f := std.fopen(filepath.join("umbox", "versions.json"), "r")
+                r := map[str]any(json.parse(str([]char(io.mkFile(f).read()))))
                 std.fclose(f)
                 for k,v in r {
                         versions[k] = str(v)
@@ -126,11 +126,11 @@ fn run*(url: str, argi: int) {
         }
         enc.endObject()
 
-        f := std.fopen(filepath.join("pak", "versions.json"), "w")
+        f := std.fopen(filepath.join("umbox", "versions.json"), "w")
         fprintf(f, "%s", enc.toStr())
         std.fclose(f)
         
-        ls, _ := os.listdir("pak")
+        ls, _ := os.listdir("umbox")
         for i,d in ls {
                 if d == "versions.json" || d == "." || d == ".." {
                         continue
@@ -138,7 +138,7 @@ fn run*(url: str, argi: int) {
 
                 if !touched[d] {
                         printf("Removing %s...\n", d)
-                        os.walk(filepath.join("pak", d), fn(path: str) |d| {
+                        os.walk(filepath.join("umbox", d), fn(path: str) |d| {
                                 printf("Removing %s\n", path)
                                 err := os.remove(path)
                                 if err != 0 {
@@ -146,7 +146,7 @@ fn run*(url: str, argi: int) {
                                 }
                         })
                         
-                        os.remove(filepath.join("pak", d))
+                        os.remove(filepath.join("umbox", d))
                 }
         }
 }

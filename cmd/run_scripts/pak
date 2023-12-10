@@ -1,5 +1,0 @@
-#!/bin/sh
-
-DIR=$(dirname $(readlink -f $0))
-
-$DIR/dat/pak/umka/linux/umka $DIR/dat/pak.um $@

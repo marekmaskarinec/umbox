@@ -13,12 +13,12 @@ import (
 )
 
 fn help() {
-    printf("PAK - an umka package manager\n\n" +
+    printf("UmBox - an umka package manager\n\n" +
         "Arguments:\n" +
         "\t-h, --help - Display this help message\n" +
-        "\t-u, --url - Specify the PAK server URL (Default: https://pak.tophat2d.dev/)\n\n" +
+        "\t-u, --url - Specify the UmBox server URL (Default: https://umbox.tophat2d.dev/)\n\n" +
         "Modes:\n" +
-        "\tbuild - Build a pak.tar\n" +
+        "\tbuild - Build a box.tar\n" +
         "\tinit - Initialize a package\n" +
         "\tinstall - Install a package\n" +
         "\tremove - Remove a package\n" +
@@ -31,7 +31,7 @@ fn help() {
 }
 
 fn main() {
-    url := "https://pak.tophat2d.dev/"
+    url := "https://umbox.tophat2d.dev/"
              
     if std.argc() == 1 {
         help()

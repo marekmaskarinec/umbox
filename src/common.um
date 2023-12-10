@@ -1,14 +1,14 @@
 
 import (
         "std.um"
-        "../pak/os/os.um"
-        "../pak/json/json.um"
-        "../pak/io/io.um"
-        "../pak/http/http.um"
-        "../pak/jsonenc/jsonenc.um"
+        "../umbox/os/os.um"
+        "../umbox/json/json.um"
+        "../umbox/io/io.um"
+        "../umbox/http/http.um"
+        "../umbox/jsonenc/jsonenc.um"
 )
 
-var url*: str = "https://pak.tophat2d.dev/"
+var url*: str = "https://umbox.tophat2d.dev/"
 
 type Meta* = struct {
         name: str
@@ -183,7 +183,7 @@ fn getMeta*(path: str): (bool, Meta) {
 fn download*(package, file: str): []uint8 {
         w := io.mkMemory({})
         resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
-                userAgent: "pak-cli"
+                userAgent: "umbox-cli"
         })
         
         if !resp.ok {
@@ -197,7 +197,7 @@ fn download*(package, file: str): []uint8 {
 fn exists*(package: str): bool {
         w := io.mkMemory({})
         resp := http.get(sprintf("%s/api/package/%s/download/version", url, package), w, {
-                userAgent: "pak-cli"
+                userAgent: "umbox-cli"
         })
 
         return resp.status == 200

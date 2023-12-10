@@ -1,16 +1,16 @@
 !include "MUI2.nsh"
 !include "EnvVarUpdate.nsh"
 
-!define NAME "pak"
+!define NAME "umbox"
 !define VERSION "v0.1.0"
 !define SLUG "${NAME} ${VERSION}"
 
 Name "${NAME}"
 Outfile "../${NAME}_install.exe"
-InstallDir "$LOCALAPPDATA\pak"
+InstallDir "$LOCALAPPDATA\umbox"
 
 !define MUI_WELCOMEPAGE_TITLE "Welcome to the ${SLUG} Setup"
-!define MUI_WELCOMEPAGE_TEXT "Setup will guide you through the installation of the PAK package manager.$\n$\nClick next to continue."
+!define MUI_WELCOMEPAGE_TEXT "Setup will guide you through the installation of the UmBox package manager.$\n$\nClick next to continue."
 !define MUI_WELCOMEFINISHPAGE_BITMAP "../etc/welcome.bmp"
 
 !insertmacro MUI_PAGE_WELCOME
@@ -24,7 +24,7 @@ InstallDir "$LOCALAPPDATA\pak"
 Section "-hidden app"
     SectionIn RO
     SetOutPath "$INSTDIR"
-    File /r "../pak_portable/*.*" 
+    File /r "../umbox_portable/*.*" 
     WriteRegStr HKCU "Software\${NAME}" "" $INSTDIR
     WriteUninstaller "$INSTDIR\Uninstall.exe"
     

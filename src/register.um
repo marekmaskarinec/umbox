@@ -1,13 +1,13 @@
 
 import (
         "std.um"
-        "../pak/http/http.um"
-        "../pak/io/io.um"
+        "../umbox/http/http.um"
+        "../umbox/io/io.um"
 )
 
 fn run*(url: str, argi: int) {
         if argi != std.argc() - 1 {
-                printf("Usage: pak register <query>\n")
+                printf("Usage: umbox register <query>\n")
                 return
         }
         

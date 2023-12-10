@@ -1,8 +1,8 @@
 
 import (
-        "../pak/http/http.um"
-        "../pak/io/io.um"
-        "../pak/json/json.um"
+        "../umbox/http/http.um"
+        "../umbox/io/io.um"
+        "../umbox/json/json.um"
         "std.um"
         
         "common.um"
@@ -10,7 +10,7 @@ import (
 
 fn run*(url: str, argi: int) {
         if argi != std.argc() - 1 {
-                printf("Usage: pak search <query>\n")
+                printf("Usage: umbox search <query>\n")
                 return
         }
 

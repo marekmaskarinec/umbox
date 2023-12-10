@@ -1,9 +1,9 @@
 
-SRCS=pak.um src/*.um pak/versions.json
-VERSION=$(shell jq .version <pak.json)
-PORTABLE=pak_portable
-PORTABLE_ZIP=pak_portable-$(VERSION).zip
-WIN_INSTALLER=pak_install.exe
+SRCS=umbox.um src/*.um umbox/versions.json
+VERSION=$(shell echo $(shell jq .version <box.json))
+PORTABLE=umbox_portable
+PORTABLE_ZIP=umbox_portable-$(VERSION).zip
+WIN_INSTALLER=umbox_install.exe
 
 .PHONY: all clean
 all: $(PORTABLE_ZIP) $(WIN_INSTALLER)
@@ -11,19 +11,19 @@ all: $(PORTABLE_ZIP) $(WIN_INSTALLER)
 clean:
 	rm -rf $(PORTABLE) $(PORTABLE_ZIP) $(WIN_INSTALLER)
 
-$(PORTABLE): $(SRCS) Makefile
-	@echo "BU pak_portable.zip"
-	mkdir -p pak_portable/dat
-	cp cmd/run_scripts/* pak_portable
+$(PORTABLE): $(SRCS)
+	@echo "BU umbox_portable.zip"
+	mkdir -p umbox_portable/dat
+	cp cmd/run_scripts/* umbox_portable
 
-	cp -r pak.um src pak/ pak_portable/dat
-	cp README.md pak_portable
-	cp LICENSE pak_portable
+	cp -r umbox.um src umbox/ umbox_portable/dat
+	cp README.md umbox_portable
+	cp LICENSE umbox_portable
 
-$(PORTABLE_ZIP): $(PORTABLE)
+$(PORTABLE_ZIP): $(PORTABLE) $(SRCS)
 	zip -r $(PORTABLE_ZIP) $(PORTABLE)
 	
-$(WIN_INSTALLER): $(PORTABLE) cmd/installer.nsis
-	@echo "BU pak_install.exe"
+$(WIN_INSTALLER): $(PORTABLE) $(SRCS) cmd/installer.nsis
+	@echo "BU umbox_install.exe"
 	@echo "  (requires makensis)"
 	makensis cmd/installer.nsis

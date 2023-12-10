@@ -3,8 +3,8 @@ import (
         "std.um"
         "common.um"
         
-        "../pak/os/os.um"
-        "../pak/tar/tar.um"
+        "../umbox/os/os.um"
+        "../umbox/tar/tar.um"
 )
 
 fn run*(url: str, argi: int) {
@@ -13,9 +13,9 @@ fn run*(url: str, argi: int) {
                 return
         }
 
-        ok, meta := common.getMeta("pak.json") 
+        ok, meta := common.getMeta("box.json") 
         if !ok {
-                printf("Not in a PAK directory.\n")
+                printf("Not in an UmBox directory.\n")
                 return
         }
         
@@ -28,9 +28,9 @@ fn run*(url: str, argi: int) {
                 }
         }
         
-        t, err := tar.open("pak.tar", "w")
+        t, err := tar.open("box.tar", "w")
         
-        t.addFile("pak.json")
+        t.addFile("box.json")
         if len(meta.readme) > 0 {
                 t.addFile(meta.readme)
         }

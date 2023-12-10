@@ -1,7 +1,7 @@
 {
-	"name": "pak",
+	"name": "umbox",
 	"version": "v0.1.0",
-	"author": "Marek Ma\u0161karinec <marek@mrms.cz>",
+	"author": "Marek Maskarinec <marek@mrms.cz>",
 	"license": "MIT",
 	"description": "",
 	"readme": "README.md",
@@ -19,6 +19,6 @@
 	],
 	"include": [
 	],
-	"run_posix": "./pak/umka/linux/umka pak.um",
-	"run_windows": "./pak/umka/windows/umka.exe pak.um"
+	"run_posix": "./umbox/umka/linux/umka umbox.um",
+	"run_windows": "./umbox/umka/windows/umka.exe umbox.um"
 }

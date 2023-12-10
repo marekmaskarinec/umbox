@@ -3,20 +3,20 @@ import (
         "std.um"
         "common.um"
         "update.um"
-        "../pak/io/io.um"
+        "../umbox/io/io.um"
 )
 
 fn run*(url: str, argi: int) {
         if argi != std.argc() - 1 {
-                printf("Usage: pak install <package_name>\n")
+                printf("Usage: umbox install <package_name>\n")
                 return
         }
 
         name := std.argv(argi)
 
-        ok, meta := common.getMeta("pak.json") 
+        ok, meta := common.getMeta("box.json") 
         if !ok {
-                printf("Not in a PAK directory.\n")
+                printf("Not in an UmBox directory.\n")
                 return
         }
 
@@ -27,7 +27,7 @@ fn run*(url: str, argi: int) {
                 }
         }
       
-        f := std.fopen("pak.json", "w")
+        f := std.fopen("box.json", "w")
         fprintf(f, "%s", meta.toJSON())
         std.fclose(f)
 
