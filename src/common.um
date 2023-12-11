@@ -186,7 +186,7 @@ fn download*(package, file: str): []uint8 {
                 userAgent: "umbox-cli"
         })
         
-        if !resp.ok {
+        if !resp.ok || resp.status != 200 {
                 printf("Downloading %s/%s failed: %d %s\n", package, file, resp.status, resp.err)
                 exit()
         }
@@ -194,9 +194,9 @@ fn download*(package, file: str): []uint8 {
         return w.read()
 }
 
-fn exists*(package: str): bool {
+fn exists*(package: str, file: str = "version"): bool {
         w := io.mkMemory({})
-        resp := http.get(sprintf("%s/api/package/%s/download/version", url, package), w, {
+        resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
                 userAgent: "umbox-cli"
         })
 

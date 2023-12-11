@@ -11,6 +11,10 @@ import (
 )
 
 fn downloadPreset(packageName: str): (common.Meta, str) {
+	if !common.exists(packageName, "init.tar") {
+		return {}, sprintf("Box '%s' doesn't have an init preset", packageName)
+	}
+
 	dat := common.download(packageName, "init.tar")
 
 	tf, err := tar.openBytes(dat)
@@ -31,11 +35,11 @@ fn downloadPreset(packageName: str): (common.Meta, str) {
 }
 
 fn run*(url: str, argi: int) {
-	if argi != 2 {
+	if std.argc() < 2 {
 		printf("Usage: umbox init [<preset>]\n")
 		return
 	}
-
+	
 	if ls, err := os.listdir("."); len(ls) > 2 {
 		printf("%v\n", ls)
 		printf("Refusing to init a box in a non-empty directory\n")
@@ -46,10 +50,11 @@ fn run*(url: str, argi: int) {
 		version: "v0.1.0",
 		readme: "README.md"
 	}
-	if argi == std.argc() - 1 {
+
+	if std.argc() == 3 {
 		preset := std.argv(argi)
 		if !common.exists(preset) {
-			printf("%s doesn't exist\n", preset)
+			printf("Box '%s' doesn't exist\n", preset)
 			return
 		}
 
@@ -68,5 +73,5 @@ fn run*(url: str, argi: int) {
 	fprintf(f, "%s", m.toJSON())
 	std.fclose(f)
 
-	update.run(url, std.argc() - 1)
+	update.run(url, std.argc())
 }
