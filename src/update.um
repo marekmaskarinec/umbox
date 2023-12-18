@@ -11,9 +11,9 @@ import (
         "common.um"
 )
 
-fn fetchDeps(deps: []str, versions: ^map[str]str, touched: ^map[str]bool)
+fn fetchDeps(deps: []str, versions: ^map[str]str)
 
-fn fetchDep(dep: str, versions: ^map[str]str, touched: ^map[str]bool) {
+fn fetchDep(dep: str, versions: ^map[str]str) {
         if !common.exists(dep) {
                 printf("No such package: %s\n", dep)
                 exit()
@@ -46,7 +46,7 @@ fn fetchDep(dep: str, versions: ^map[str]str, touched: ^map[str]bool) {
                 printf("Error parsing %s\n", filepath.join("umbox", dep, "box.json"))
                 exit()
         }
-        fetchDeps(meta.dependencies, versions, touched)
+        fetchDeps(meta.dependencies, versions)
         
         // Create symlinks for dependencies
         os.mkdirp(filepath.join("umbox", dep, "umbox"))
@@ -57,37 +57,46 @@ fn fetchDep(dep: str, versions: ^map[str]str, touched: ^map[str]bool) {
         versions[dep] = str([]char(common.download(dep, "version")))
 }
 
-fn fetchDeps(deps: []str, versions: ^map[str]str, touched: ^map[str]bool) {
+fn fetchDeps(deps: []str, versions: ^map[str]str) {
         for i,dep in deps {
-                touched[dep] = true
-
                 // If the dependency doesn't exist, fetch it.
                 if !os.isdir(filepath.join("umbox", dep)) {
                         printf("Downloading %s...\n", dep)
-                        fetchDep(dep, versions, touched)
+                        fetchDep(dep, versions)
                         continue
                 }
-                
+
                 // If the dependency doesn't have a known version, fetch it.
                 if !validkey(versions^, dep) {
                         printf("Downloading %s...\n", dep)
-                        fetchDep(dep, versions, touched)
+                        fetchDep(dep, versions)
                         continue
                 }
-                
+
                 // Check for new versions.
                 if versions[dep] != str([]char(common.download(dep, "version"))) {
                         printf("Updating %s...\n", dep)
-                        fetchDep(dep, versions, touched)
+                        fetchDep(dep, versions)
                         continue
                 }
-                
-                // Touch all the dependencies of the dependency.
-                _, meta := common.getMeta(filepath.join("umbox", dep, "box.json"))
-                for i,d in meta.dependencies {
-                        touched[d] = true
-                }
         }
+}
+
+fn touchDep(dep: str, touched: ^map[str]bool) {
+	if validkey(touched^, dep) {
+		return
+	}
+
+	touched[dep] = true
+
+	ok, meta := common.getMeta(filepath.join("umbox", dep, "box.json"))
+	if !ok {
+		return
+	}
+
+	for i, dep in meta.dependencies {
+		touchDep(dep, touched)
+	}
 }
 
 fn run*(url: str, argi: int) {
@@ -113,16 +122,21 @@ fn run*(url: str, argi: int) {
                         versions[k] = str(v)
                 }
         }
-        
+
+        fetchDeps(meta.dependencies, &versions)
+
         touched := map[str]bool{}
-        
-        fetchDeps(meta.dependencies, &versions, &touched)
+	for i,dep in meta.dependencies {
+		touchDep(dep, &touched)
+	}
                 
         enc := jsonenc.mk(true)
         enc.startObject()
         for k,v in versions {
-                enc.putKey(k)
-                enc.putVal(v)
+		if touched[k] {
+			enc.putKey(k)
+			enc.putVal(v)
+		}
         }
         enc.endObject()
 
