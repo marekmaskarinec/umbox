@@ -20,6 +20,10 @@ $(PORTABLE): $(SRCS)
 	cp README.md umbox_portable
 	cp LICENSE umbox_portable
 
+	# dirty hack to convince Make the directory changed
+	touch umbox_portable/a
+	rm umbox_portable/a
+
 $(PORTABLE_ZIP): $(PORTABLE) $(SRCS)
 	zip -r $(PORTABLE_ZIP) $(PORTABLE)
 	
