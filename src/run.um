@@ -46,7 +46,7 @@ fn run*(url: str, argi: int) {
         os.setEnv("PATH", path)
 
         cmdSp := strings.split(cmd, " ")
-        cmdSp[0] = filepath.toslash(cmdSp[0])
+        cmdSp[0] = filepath.fromslash(cmdSp[0])
         cmd = strings.join(cmdSp, " ")
 
         std.system(cmd + args)
