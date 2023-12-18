@@ -139,12 +139,11 @@ fn run*(url: str, argi: int) {
                 if !touched[d] {
                         printf("Removing %s...\n", d)
                         os.walk(filepath.join("umbox", d), fn(path: str) |d| {
-                                printf("Removing %s\n", path)
                                 err := os.remove(path)
                                 if err != 0 {
                                         printf("Error removing %s: %s\n", path, os.strerror(err))
                                 }
-                        })
+                        }, { skipLinks: true })
                         
                         os.remove(filepath.join("umbox", d))
                 }
