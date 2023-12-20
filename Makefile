@@ -2,7 +2,7 @@
 SRCS=umbox.um src/*.um umbox/versions.json
 VERSION=$(shell echo $(shell jq .version <box.json))
 PORTABLE=umbox_portable
-PORTABLE_ZIP=umbox_portable-$(VERSION).zip
+PORTABLE_ZIP=umbox_portable.zip
 WIN_INSTALLER=umbox_install.exe
 
 .PHONY: all clean

@@ -1,0 +1,24 @@
+image: debian/bullseye
+packages:
+  - curl
+  - unzip
+  - zip
+  - nsis
+  - rsync
+secrets:
+  - 09e2cbc4-14d3-473d-9855-d14a906bda1e
+sources:
+  - https://git.sr.ht/~mrms/umbox
+tasks:
+  - setup: |
+      curl https://mrms.cz/dl/up/umbox_portable.zip -O
+      unzip umbox_portable.zip
+  - build: |
+      cd umbox
+      # Yes, we are using the same umbox to update itself.
+      ../umbox_portable/umbox update
+      LANG=C.UTF-8 make
+  - deploy: |
+      cd umbox
+      rsync --rsh="ssh -o StrictHostKeyChecking=no" umbox_portable.zip marek@mrms.cz:www/web/dl/umbox/
+      rsync --rsh="ssh -o StrictHostKeyChecking=no" umbox_install.exe marek@mrms.cz:www/web/dl/umbox/
