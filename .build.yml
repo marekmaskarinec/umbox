@@ -22,3 +22,4 @@ tasks:
       cd umbox
       rsync --rsh="ssh -o StrictHostKeyChecking=no" umbox_portable.zip marek@mrms.cz:www/web/dl/umbox/
       rsync --rsh="ssh -o StrictHostKeyChecking=no" umbox_install.exe marek@mrms.cz:www/web/dl/umbox/
+      rsync --rsh="ssh -o StrictHostKeyChecking=no" setup.sh marek@mrms.cz:www/web/dl/umbox/
