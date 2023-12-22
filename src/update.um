@@ -51,7 +51,10 @@ fn fetchDep(dep: str, versions: ^map[str]str) {
         // Create symlinks for dependencies
         os.mkdirp(filepath.join("umbox", dep, "umbox"))
         for i,d in meta.dependencies {
-                os.link(filepath.join("..", "..", d), filepath.join("umbox", dep, "umbox", d))
+                err := os.link(filepath.join("..", "..", d), filepath.join("umbox", dep, "umbox", d))
+                if err != 0 && os.getPlatform() == os.PlatformWindows {
+                        std.system("mklink /j " + filepath.join("umbox", dep, "umbox", d) + " " + filepath.join("umbox", d))
+                }
         }
               
         versions[dep] = str([]char(common.download(dep, "version")))
