@@ -1,204 +1,204 @@
 
 import (
-        "std.um"
-        "../umbox/os/os.um"
-        "../umbox/json/json.um"
-        "../umbox/io/io.um"
-        "../umbox/http/http.um"
-        "../umbox/jsonenc/jsonenc.um"
+	"std.um"
+	"../umbox/os/os.um"
+	"../umbox/json/json.um"
+	"../umbox/io/io.um"
+	"../umbox/http/http.um"
+	"../umbox/jsonenc/jsonenc.um"
 )
 
 var url*: str = "https://umbox.tophat2d.dev/"
 
 type Meta* = struct {
-        name: str
-        version: str
-        author: str
-        license: str
-        description: str
-        readme: str
-        link: str
-        dependencies: []str
-        include: []str
-        run: str
-        runPosix: str
-        runWindows: str
-        preBuild: str
-        postBuild: str
+	name: str
+	version: str
+	author: str
+	license: str
+	description: str
+	readme: str
+	link: str
+	dependencies: []str
+	include: []str
+	run: str
+	runPosix: str
+	runWindows: str
+	preBuild: str
+	postBuild: str
 }
 
 fn (m: ^Meta) toJSON*(): str {
-        enc := jsonenc.mk()
+	enc := jsonenc.mk()
 
-        enc.startObject()
-                enc.putKey("name"); enc.putVal(m.name)
-                enc.putKey("version"); enc.putVal(m.version)
-                enc.putKey("author"); enc.putVal(m.author)
-                enc.putKey("license"); enc.putVal(m.license)
-                enc.putKey("description"); enc.putVal(m.description)
-                enc.putKey("readme"); enc.putVal(m.readme)
-                enc.putKey("link"); enc.putVal(m.link)
-                enc.putKey("dependencies"); enc.startArray()
-                        for i,v in m.dependencies {
-                                enc.putVal(v)
-                        }
-                enc.endArray()
-                        
-                enc.putKey("include"); enc.startArray()
-                        for i,v in m.include {
-                                enc.putVal(v)
-                        }
-                enc.endArray()
-                        
-                if len(m.run) > 0 {
-                        enc.putKey("run"); enc.putVal(m.run)
-                }
+	enc.startObject()
+		enc.putKey("name"); enc.putVal(m.name)
+		enc.putKey("version"); enc.putVal(m.version)
+		enc.putKey("author"); enc.putVal(m.author)
+		enc.putKey("license"); enc.putVal(m.license)
+		enc.putKey("description"); enc.putVal(m.description)
+		enc.putKey("readme"); enc.putVal(m.readme)
+		enc.putKey("link"); enc.putVal(m.link)
+		enc.putKey("dependencies"); enc.startArray()
+			for i,v in m.dependencies {
+				enc.putVal(v)
+			}
+		enc.endArray()
+			
+		enc.putKey("include"); enc.startArray()
+			for i,v in m.include {
+				enc.putVal(v)
+			}
+		enc.endArray()
+			
+		if len(m.run) > 0 {
+			enc.putKey("run"); enc.putVal(m.run)
+		}
 
-                if len(m.runPosix) > 0 {
-                        enc.putKey("run_posix"); enc.putVal(m.runPosix)
-                }
+		if len(m.runPosix) > 0 {
+			enc.putKey("run_posix"); enc.putVal(m.runPosix)
+		}
 
-                if len(m.runWindows) > 0 {
-                        enc.putKey("run_windows"); enc.putVal(m.runWindows)
-                }
+		if len(m.runWindows) > 0 {
+			enc.putKey("run_windows"); enc.putVal(m.runWindows)
+		}
 
-                if len(m.preBuild) > 0 {
-                        enc.putKey("pre_build"); enc.putVal(m.preBuild)
-                }
+		if len(m.preBuild) > 0 {
+			enc.putKey("pre_build"); enc.putVal(m.preBuild)
+		}
 
-                if len(m.postBuild) > 0 {
-                        enc.putKey("post_build"); enc.putVal(m.postBuild)
-                }
-        enc.endObject()
+		if len(m.postBuild) > 0 {
+			enc.putKey("post_build"); enc.putVal(m.postBuild)
+		}
+	enc.endObject()
 
-        return enc.toStr()
+	return enc.toStr()
 }
 
 fn getMeta*(path: str): (bool, Meta) {
-        if !os.isfile(path) {
-                return false, {}
-        }
-        
-        f := std.fopen(path, "r")
-        r := ^map[str]any(json.parse(str([]char(io.mkFile(f).read()))))
-        std.fclose(f)
-        if r == null {
-                return false, {}
-        }
-           
-        m := Meta{}
+	if !os.isfile(path) {
+		return false, {}
+	}
+	
+	f := std.fopen(path, "r")
+	r := ^map[str]any(json.parse(str([]char(io.mkFile(f).read()))))
+	std.fclose(f)
+	if r == null {
+		return false, {}
+	}
+	   
+	m := Meta{}
 
-        if ^str(r["name"]) != null {
-                m.name = str(r["name"])
-        } else {
-                printf("%s: missing key 'name'\n", path)
-                return false, {}
-        }
-        
-        if ^str(r["version"]) != null {
-                m.version = str(r["version"])
-        } else {
-                printf("%s: missing key 'version'\n", path)
-                return false, {}
-        }
-        
-        if ^str(r["author"]) != null {
-                m.author = str(r["author"])
-        } else {
-                printf("%s: missing key 'author'\n", path)
-                return false, {}
-        }
+	if ^str(r["name"]) != null {
+		m.name = str(r["name"])
+	} else {
+		printf("%s: missing key 'name'\n", path)
+		return false, {}
+	}
+	
+	if ^str(r["version"]) != null {
+		m.version = str(r["version"])
+	} else {
+		printf("%s: missing key 'version'\n", path)
+		return false, {}
+	}
+	
+	if ^str(r["author"]) != null {
+		m.author = str(r["author"])
+	} else {
+		printf("%s: missing key 'author'\n", path)
+		return false, {}
+	}
 
-        if ^str(r["license"]) != null {
-                m.license = str(r["license"])
-        } else {
-                printf("%s: missing key 'license'\n", path)
-                return false, {}
-        }
+	if ^str(r["license"]) != null {
+		m.license = str(r["license"])
+	} else {
+		printf("%s: missing key 'license'\n", path)
+		return false, {}
+	}
 
-        if ^str(r["description"]) != null {
-                m.description = str(r["description"])
-        } else {
-                printf("%s: missing key 'description'\n", path)
-                return false, {}
-        }
+	if ^str(r["description"]) != null {
+		m.description = str(r["description"])
+	} else {
+		printf("%s: missing key 'description'\n", path)
+		return false, {}
+	}
 
-        if ^str(r["readme"]) != null {
-                m.readme = str(r["readme"])
-        } else {
-                printf("%s: missing key 'readme'\n", path)
-                return false, {}
-        }
+	if ^str(r["readme"]) != null {
+		m.readme = str(r["readme"])
+	} else {
+		printf("%s: missing key 'readme'\n", path)
+		return false, {}
+	}
 
-        if ^str(r["link"]) != null {
-                m.link = str(r["link"])
-        } else {
-                printf("%s: missing key 'link'\n", path)
-                return false, {}
-        }
+	if ^str(r["link"]) != null {
+		m.link = str(r["link"])
+	} else {
+		printf("%s: missing key 'link'\n", path)
+		return false, {}
+	}
 
-        if ^[]any(r["dependencies"]) != null {
-                m.dependencies = make([]str, len([]any(r["dependencies"])))
-                for i, v in []any(r["dependencies"]) {
-                        m.dependencies[i] = str(v)
-                }
-        } else {
-                printf("%s: missing key 'dependencies'\n", path)
-                return false, {}
-        }
+	if ^[]any(r["dependencies"]) != null {
+		m.dependencies = make([]str, len([]any(r["dependencies"])))
+		for i, v in []any(r["dependencies"]) {
+			m.dependencies[i] = str(v)
+		}
+	} else {
+		printf("%s: missing key 'dependencies'\n", path)
+		return false, {}
+	}
 
-        if ^[]any(r["include"]) != null {
-                m.include = make([]str, len([]any(r["include"])))
-                for i, v in []any(r["include"]) {
-                        m.include[i] = str(v)
-                }
-        } else {
-                printf("%s: missing key 'include'\n", path)
-                return false, {}
-        }
+	if ^[]any(r["include"]) != null {
+		m.include = make([]str, len([]any(r["include"])))
+		for i, v in []any(r["include"]) {
+			m.include[i] = str(v)
+		}
+	} else {
+		printf("%s: missing key 'include'\n", path)
+		return false, {}
+	}
 
-        if ^str(r["run"]) != null {
-                m.run = str(r["run"])
-        }
-        
-        if ^str(r["run_posix"]) != null {
-                m.runPosix = str(r["run_posix"])
-        }
+	if ^str(r["run"]) != null {
+		m.run = str(r["run"])
+	}
+	
+	if ^str(r["run_posix"]) != null {
+		m.runPosix = str(r["run_posix"])
+	}
 
-        if ^str(r["run_windows"]) != null {
-                m.runWindows = str(r["run_windows"])
-        }
+	if ^str(r["run_windows"]) != null {
+		m.runWindows = str(r["run_windows"])
+	}
 
-        if ^str(r["pre_build"]) != null {
-                m.preBuild = str(r["pre_build"])
-        }
+	if ^str(r["pre_build"]) != null {
+		m.preBuild = str(r["pre_build"])
+	}
 
-        if ^str(r["post_build"]) != null {
-                m.postBuild = str(r["post_build"])
-        }
+	if ^str(r["post_build"]) != null {
+		m.postBuild = str(r["post_build"])
+	}
 
-        return true, m
+	return true, m
 }
 
 fn download*(package, file: str): []uint8 {
-        w := io.mkMemory({})
-        resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
-                userAgent: "umbox-cli"
-        })
-        
-        if !resp.ok || resp.status != 200 {
-                printf("Downloading %s/%s failed: %d %s\n", package, file, resp.status, resp.err)
-                exit()
-        }
-        
-        return w.read()
+	w := io.mkMemory({})
+	resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
+		userAgent: "umbox-cli"
+	})
+	
+	if !resp.ok || resp.status != 200 {
+		printf("Downloading %s/%s failed: %d %s\n", package, file, resp.status, resp.err)
+		exit()
+	}
+	
+	return w.read()
 }
 
 fn exists*(package: str, file: str = "version"): bool {
-        w := io.mkMemory({})
-        resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
-                userAgent: "umbox-cli"
-        })
+	w := io.mkMemory({})
+	resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
+		userAgent: "umbox-cli"
+	})
 
-        return resp.status == 200
+	return resp.status == 200
 }

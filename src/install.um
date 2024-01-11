@@ -1,45 +1,45 @@
 
 import (
-        "std.um"
-        "common.um"
-        "update.um"
-        "../umbox/io/io.um"
+	"std.um"
+	"common.um"
+	"update.um"
+	"../umbox/io/io.um"
 )
 
 fn run*(url: str, argi: int) {
-        if argi != std.argc() - 1 {
-                printf("Usage: umbox install <box_name>\n")
-                return
-        }
-        
-        name := std.argv(argi)
+	if argi != std.argc() - 1 {
+		printf("Usage: umbox install <box_name>\n")
+		return
+	}
+	
+	name := std.argv(argi)
 
-        ok, meta := common.getMeta("box.json") 
-        if !ok {
-                printf("Not in an UmBox directory.\n")
-                return
-        }
+	ok, meta := common.getMeta("box.json") 
+	if !ok {
+		printf("Not in an UmBox directory.\n")
+		return
+	}
 
-        if !common.exists(name) {
-                printf("Box '%s' does not exist.\n", name)
-                return
-        }
+	if !common.exists(name) {
+		printf("Box '%s' does not exist.\n", name)
+		return
+	}
 
-        exists := false
-        for i,dep in meta.dependencies {
-                if dep == name {
-                        exists = true
-                        break
-                }
-        }
+	exists := false
+	for i,dep in meta.dependencies {
+		if dep == name {
+			exists = true
+			break
+		}
+	}
 
-        if !exists {
-                meta.dependencies = append(meta.dependencies, name)
-        }
+	if !exists {
+		meta.dependencies = append(meta.dependencies, name)
+	}
 
-        f := std.fopen("box.json", "w")
-        fprintf(f, "%s", meta.toJSON())
-        std.fclose(f)
+	f := std.fopen("box.json", "w")
+	fprintf(f, "%s", meta.toJSON())
+	std.fclose(f)
 
-        update.run(url, std.argc())
+	update.run(url, std.argc())
 }

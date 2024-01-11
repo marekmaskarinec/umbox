@@ -1,36 +1,36 @@
 
 import (
-        "../umbox/http/http.um"
-        "../umbox/io/io.um"
-        "../umbox/json/json.um"
-        "std.um"
-        
-        "common.um"
+	"../umbox/http/http.um"
+	"../umbox/io/io.um"
+	"../umbox/json/json.um"
+	"std.um"
+	
+	"common.um"
 )
 
 fn run*(url: str, argi: int) {
-        if argi != std.argc() - 1 {
-                printf("Usage: umbox search <query>\n")
-                return
-        }
+	if argi != std.argc() - 1 {
+		printf("Usage: umbox search <query>\n")
+		return
+	}
 
-        query := std.argv(argi)
+	query := std.argv(argi)
 
-        w := io.mkMemory({})
-        resp := http.get(sprintf("%s/api/search/%s", url, query), w)
-        if !resp.ok {
-                printf("Search failed: %s", resp.err)
-                return
-        }
+	w := io.mkMemory({})
+	resp := http.get(sprintf("%s/api/search/%s", url, query), w)
+	if !resp.ok {
+		printf("Search failed: %s", resp.err)
+		return
+	}
 
-        r := ^[]any(json.parse(str([]char(w.read()))))
-        if r == null {
-                printf("Search failed.\n")
-        }
+	r := ^[]any(json.parse(str([]char(w.read()))))
+	if r == null {
+		printf("Search failed.\n")
+	}
 
-        res := []map[str]any(r^)
+	res := []map[str]any(r^)
 
-        for i,r in res {
-                printf("%s - %s\n", str(r["name"]), str(r["description"]))
-        }
+	for i,r in res {
+		printf("%s - %s\n", str(r["name"]), str(r["description"]))
+	}
 }

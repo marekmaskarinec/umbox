@@ -1,24 +1,24 @@
 
 import (
-        "std.um"
-        "../umbox/http/http.um"
-        "../umbox/io/io.um"
+	"std.um"
+	"../umbox/http/http.um"
+	"../umbox/io/io.um"
 )
 
 fn run*(url: str, argi: int) {
-        if argi != std.argc() - 1 {
-                printf("Usage: umbox register <query>\n")
-                return
-        }
-        
-        name := std.argv(argi)
+	if argi != std.argc() - 1 {
+		printf("Usage: umbox register <query>\n")
+		return
+	}
+	
+	name := std.argv(argi)
 
-        w := io.mkMemory({})
-        resp := http.get(sprintf("%s/api/register/%s", url, name), w)
-        if !resp.ok {
-                printf("Registering failed: %s", resp.err)
-                return
-        }
-              
-        printf("%s\n", str([]char(w.read())))
+	w := io.mkMemory({})
+	resp := http.get(sprintf("%s/api/register/%s", url, name), w)
+	if !resp.ok {
+		printf("Registering failed: %s", resp.err)
+		return
+	}
+	      
+	printf("%s\n", str([]char(w.read())))
 }

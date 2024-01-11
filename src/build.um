@@ -1,68 +1,68 @@
 
 import (
-        "std.um"
-        "common.um"
-        
-        "../umbox/os/os.um"
-        "../umbox/tar/tar.um"
+	"std.um"
+	"common.um"
+	
+	"../umbox/os/os.um"
+	"../umbox/tar/tar.um"
 )
 
 fn run*(url: str, argi: int) {
-        if argi != std.argc() {
-                printf("Build requires no arguments.\n")
-                return
-        }
+	if argi != std.argc() {
+		printf("Build requires no arguments.\n")
+		return
+	}
 
-        ok, meta := common.getMeta("box.json") 
-        if !ok {
-                printf("Not in an UmBox directory.\n")
-                return
-        }
-        
-        if len(meta.preBuild) > 0 {
-                code := std.system(meta.preBuild)
+	ok, meta := common.getMeta("box.json") 
+	if !ok {
+		printf("Not in an UmBox directory.\n")
+		return
+	}
+	
+	if len(meta.preBuild) > 0 {
+		code := std.system(meta.preBuild)
 
-                if code != 0 {
-                        printf("Pre-build failed with code %d\n", code)
-                        return
-                }
-        }
-        
-        t, err := tar.open("box.tar", "w")
-        
-        t.addFile("box.json")
-        if len(meta.readme) > 0 {
-                t.addFile(meta.readme)
-        }
-        
-        for i,f in meta.include {
-                if os.isfile(f) {
-                        t.addFile(f)
-                } else {
-                        os.walk(f, fn(p: str) |t| {
-                                t.addFile(p)
-                        })
-                }
-        }
-        
-        err = t.finalize()
-        if err != 0 {
-                printf("Error finalizing tar: %s\n", tar.strerror(err))
-                return
-        }
-        
-        err = t.close()
-        if err != 0 {
-                printf("Error closing tar: %s\n", tar.strerror(err))
-                return
-        }
-        
-        if len(meta.postBuild) > 0 {
-                code := std.system(meta.postBuild)
+		if code != 0 {
+			printf("Pre-build failed with code %d\n", code)
+			return
+		}
+	}
+	
+	t, err := tar.open("box.tar", "w")
+	
+	t.addFile("box.json")
+	if len(meta.readme) > 0 {
+		t.addFile(meta.readme)
+	}
+	
+	for i,f in meta.include {
+		if os.isfile(f) {
+			t.addFile(f)
+		} else {
+			os.walk(f, fn(p: str) |t| {
+				t.addFile(p)
+			})
+		}
+	}
+	
+	err = t.finalize()
+	if err != 0 {
+		printf("Error finalizing tar: %s\n", tar.strerror(err))
+		return
+	}
+	
+	err = t.close()
+	if err != 0 {
+		printf("Error closing tar: %s\n", tar.strerror(err))
+		return
+	}
+	
+	if len(meta.postBuild) > 0 {
+		code := std.system(meta.postBuild)
 
-                if code != 0 {
-                        printf("Post-build failed with code %d\n", code)
-                        return
-                }
-        }
+		if code != 0 {
+			printf("Post-build failed with code %d\n", code)
+			return
+		}
+	}
 }
