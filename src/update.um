@@ -20,13 +20,7 @@ fn fetchDep(dep: str, versions: ^map[str]str) {
 	}
 	
 	os.mkdirp(filepath.join("umbox", dep))
-		
-	// fetch box.json
-	umboxjson := str([]char(common.download(dep, "box.json")))
-	f := std.fopen(filepath.join("umbox", dep, "box.json"), "w")
-	fprintf(f, "%s", umboxjson)
-	std.fclose(f)
-	
+
 	// fetch and extract box.tar
 	tf, err := tar.openBytes(common.download(dep, "box.tar"))
 	if err != 0 {
