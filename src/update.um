@@ -6,12 +6,29 @@ import (
 	"../umbox/tar/tar.um"
 	"../umbox/io/io.um"
 	"../umbox/jsonenc/jsonenc.um"
+	"../umbox/strings/strings.um"
 
 	"std.um"
 	"common.um"
 )
 
 fn fetchDeps(deps: []str, versions: ^map[str]str)
+
+var (
+	copyDeps: bool = false
+)
+
+fn copyFile(p1, p2: str) {
+	f1 := std.fopen(p1, "r")
+	r := io.mkFile(f1)
+	f2 := std.fopen(p2, "w")
+	w := io.mkFile(f2)
+
+	w.write(r.read())
+
+	std.fclose(f1)
+	std.fclose(f2)
+}
 
 fn fetchDep(dep: str, versions: ^map[str]str) {
 	if !common.exists(dep) {
@@ -45,9 +62,21 @@ fn fetchDep(dep: str, versions: ^map[str]str) {
 	// Create symlinks for dependencies
 	os.mkdirp(filepath.join("umbox", dep, "umbox"))
 	for i,d in meta.dependencies {
-		err := os.link(filepath.join("..", "..", d), filepath.join("umbox", dep, "umbox", d))
-		if err != 0 && os.getPlatform() == os.PlatformWindows {
-			std.system("mklink /j " + filepath.join("umbox", dep, "umbox", d) + " " + filepath.join("umbox", d))
+		if copyDeps {
+			os.walk(filepath.join("umbox", d), |dep, d| {
+				file2 := filepath.join(
+					"umbox", dep, "umbox", d,
+					strings.trimprefix(file, filepath.join("umbox", d))
+				)
+
+				os.mkdir(filepath.dir(file2))
+				copyFile(file, file2)
+			}, { excludeDirs: true })
+		} else {
+			err := os.link(filepath.join("..", "..", d), filepath.join("umbox", dep, "umbox", d))
+			if err != 0 && os.getPlatform() == os.PlatformWindows {
+				std.system("mklink /j " + filepath.join("umbox", dep, "umbox", d) + " " + filepath.join("umbox", d))
+			}
 		}
 	}
 	      
@@ -97,9 +126,17 @@ fn touchDep(dep: str, touched: ^map[str]bool) {
 }
 
 fn run*(url: str, argi: int) {
-	if argi != std.argc() {
-		fprintf(std.stderr(), "Too many arguments.\n")
-		return
+	for argi < std.argc() {
+		v := std.argv(argi)
+
+		if v == "-c" {
+			copyDeps = true
+		} else {
+			printf("usage: umbox update [ -c ]\n  -c: Don't use symlinks\n")
+			return
+		}
+
+		argi++
 	}
 
 	ok, meta := common.getMeta("box.json")
