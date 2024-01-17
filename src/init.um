@@ -36,13 +36,13 @@ fn downloadPreset(packageName: str): (common.Meta, str) {
 
 fn run*(url: str, argi: int) {
 	if std.argc() < 2 {
-		printf("Usage: umbox init [<preset>]\n")
+		fprintf(std.stderr(), "Usage: umbox init [<preset>]\n")
 		return
 	}
 	
 	if ls, err := os.listdir("."); len(ls) > 2 {
-		printf("%v\n", ls)
-		printf("Refusing to init a box in a non-empty directory\n")
+		fprintf(std.stderr(), "%v\n", ls)
+		fprintf(std.stderr(), "Refusing to init a box in a non-empty directory\n")
 		return
 	}
 
@@ -54,14 +54,14 @@ fn run*(url: str, argi: int) {
 	if std.argc() == 3 {
 		preset := std.argv(argi)
 		if !common.exists(preset) {
-			printf("Box '%s' doesn't exist\n", preset)
+			fprintf(std.stderr(), "Box '%s' doesn't exist\n", preset)
 			return
 		}
 
 		var err: str
 		m, err = downloadPreset(preset)
 		if len(err) != 0 {
-			printf("Could not download preset: %s\n", err)
+			fprintf(std.stderr(), "Could not download preset: %s\n", err)
 			return
 		}
 	}

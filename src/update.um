@@ -15,7 +15,7 @@ fn fetchDeps(deps: []str, versions: ^map[str]str)
 
 fn fetchDep(dep: str, versions: ^map[str]str) {
 	if !common.exists(dep) {
-		printf("No such package: %s\n", dep)
+		fprintf(std.stderr(), "No such package: %s\n", dep)
 		exit()
 	}
 	
@@ -30,20 +30,20 @@ fn fetchDep(dep: str, versions: ^map[str]str) {
 	// fetch and extract box.tar
 	tf, err := tar.openBytes(common.download(dep, "box.tar"))
 	if err != 0 {
-		printf("Error parsing box.tar: %s\n", tar.strerror(err))
+		fprintf(std.stderr(), "Error parsing box.tar: %s\n", tar.strerror(err))
 		exit()
 	}
 	
 	err = tf.extract(filepath.join("umbox", dep, ""))
 	if err != 0 {
-		printf("Error extracting box.tar: %s\n", tar.strerror(err))
+		fprintf(std.stderr(), "Error extracting box.tar: %s\n", tar.strerror(err))
 		exit()
 	}
 	
 	// Fetch dependencies
 	ok, meta := common.getMeta(filepath.join("umbox", dep, "box.json"))
 	if !ok {
-		printf("Error parsing %s\n", filepath.join("umbox", dep, "box.json"))
+		fprintf(std.stderr(), "Error parsing %s\n", filepath.join("umbox", dep, "box.json"))
 		exit()
 	}
 	fetchDeps(meta.dependencies, versions)
@@ -64,21 +64,21 @@ fn fetchDeps(deps: []str, versions: ^map[str]str) {
 	for i,dep in deps {
 		// If the dependency doesn't exist, fetch it.
 		if !os.isdir(filepath.join("umbox", dep)) {
-			printf("Downloading %s...\n", dep)
+			fprintf(std.stderr(), "Downloading %s...\n", dep)
 			fetchDep(dep, versions)
 			continue
 		}
 
 		// If the dependency doesn't have a known version, fetch it.
 		if !validkey(versions^, dep) {
-			printf("Downloading %s...\n", dep)
+			fprintf(std.stderr(), "Downloading %s...\n", dep)
 			fetchDep(dep, versions)
 			continue
 		}
 
 		// Check for new versions.
 		if versions[dep] != str([]char(common.download(dep, "version"))) {
-			printf("Updating %s...\n", dep)
+			fprintf(std.stderr(), "Updating %s...\n", dep)
 			fetchDep(dep, versions)
 			continue
 		}
@@ -104,13 +104,13 @@ fn touchDep(dep: str, touched: ^map[str]bool) {
 
 fn run*(url: str, argi: int) {
 	if argi != std.argc() {
-		printf("Too many arguments.\n")
+		fprintf(std.stderr(), "Too many arguments.\n")
 		return
 	}
 
 	ok, meta := common.getMeta("box.json")
 	if !ok {
-		printf("Not in an UmBox directory.\n")
+		fprintf(std.stderr(), "Not in an UmBox directory.\n")
 		return
 	}
 	
@@ -154,11 +154,11 @@ fn run*(url: str, argi: int) {
 		}
 
 		if !touched[d] {
-			printf("Removing %s...\n", d)
+			fprintf(std.stderr(), "Removing %s...\n", d)
 			os.walk(filepath.join("umbox", d), fn(path: str) |d| {
 				err := os.remove(path)
 				if err != 0 {
-					printf("Error removing %s: %s\n", path, os.strerror(err))
+					fprintf(std.stderr(), "Error removing %s: %s\n", path, os.strerror(err))
 				}
 			}, { skipLinks: true })
 			

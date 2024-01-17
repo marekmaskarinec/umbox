@@ -7,7 +7,7 @@ import (
 
 fn run*(url: str, argi: int) {
 	if argi != std.argc() - 1 {
-		printf("Usage: umbox register <query>\n")
+		fprintf(std.stderr(), "Usage: umbox register <query>\n")
 		return
 	}
 	
@@ -16,9 +16,9 @@ fn run*(url: str, argi: int) {
 	w := io.mkMemory({})
 	resp := http.get(sprintf("%s/api/register/%s", url, name), w)
 	if !resp.ok {
-		printf("Registering failed: %s", resp.err)
+		fprintf(std.stderr(), "Registering failed: %s", resp.err)
 		return
 	}
 	      
-	printf("%s\n", str([]char(w.read())))
+	fprintf(std.stderr(), "%s\n", str([]char(w.read())))
 }

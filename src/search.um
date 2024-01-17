@@ -10,7 +10,7 @@ import (
 
 fn run*(url: str, argi: int) {
 	if argi != std.argc() - 1 {
-		printf("Usage: umbox search <query>\n")
+		fprintf(std.stderr(), "Usage: umbox search <query>\n")
 		return
 	}
 
@@ -19,18 +19,18 @@ fn run*(url: str, argi: int) {
 	w := io.mkMemory({})
 	resp := http.get(sprintf("%s/api/search/%s", url, query), w)
 	if !resp.ok {
-		printf("Search failed: %s", resp.err)
+		fprintf(std.stderr(), "Search failed: %s", resp.err)
 		return
 	}
 
 	r := ^[]any(json.parse(str([]char(w.read()))))
 	if r == null {
-		printf("Search failed.\n")
+		fprintf(std.stderr(), "Search failed.\n")
 	}
 
 	res := []map[str]any(r^)
 
 	for i,r in res {
-		printf("%s - %s\n", str(r["name"]), str(r["description"]))
+		fprintf(std.stderr(), "%s - %s\n", str(r["name"]), str(r["description"]))
 	}
 }

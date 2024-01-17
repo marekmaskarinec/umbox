@@ -10,7 +10,7 @@ import (
 fn run*(url: str, argi: int) {
 	ok, meta := common.getMeta("box.json") 
 	if !ok {
-		printf("Not in an UmBox directory.\n")
+		fprintf(std.stderr(), "Not in an UmBox directory.\n")
 		return
 	}
 	

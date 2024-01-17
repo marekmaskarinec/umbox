@@ -9,13 +9,13 @@ import (
 
 fn run*(url: str, argi: int) {
 	if argi != std.argc() {
-		printf("Build requires no arguments.\n")
+		fprintf(std.stderr(), "Build requires no arguments.\n")
 		return
 	}
 
 	ok, meta := common.getMeta("box.json") 
 	if !ok {
-		printf("Not in an UmBox directory.\n")
+		fprintf(std.stderr(), "Not in an UmBox directory.\n")
 		return
 	}
 	
@@ -23,7 +23,7 @@ fn run*(url: str, argi: int) {
 		code := std.system(meta.preBuild)
 
 		if code != 0 {
-			printf("Pre-build failed with code %d\n", code)
+			fprintf(std.stderr(), "Pre-build failed with code %d\n", code)
 			return
 		}
 	}
@@ -47,13 +47,13 @@ fn run*(url: str, argi: int) {
 	
 	err = t.finalize()
 	if err != 0 {
-		printf("Error finalizing tar: %s\n", tar.strerror(err))
+		fprintf(std.stderr(), "Error finalizing tar: %s\n", tar.strerror(err))
 		return
 	}
 	
 	err = t.close()
 	if err != 0 {
-		printf("Error closing tar: %s\n", tar.strerror(err))
+		fprintf(std.stderr(), "Error closing tar: %s\n", tar.strerror(err))
 		return
 	}
 	
@@ -61,7 +61,7 @@ fn run*(url: str, argi: int) {
 		code := std.system(meta.postBuild)
 
 		if code != 0 {
-			printf("Post-build failed with code %d\n", code)
+			fprintf(std.stderr(), "Post-build failed with code %d\n", code)
 			return
 		}
 	}

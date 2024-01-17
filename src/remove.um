@@ -8,7 +8,7 @@ import (
 
 fn run*(url: str, argi: int) {
 	if argi != std.argc() - 1 {
-		printf("Usage: umbox install <package_name>\n")
+		fprintf(std.stderr(), "Usage: umbox install <package_name>\n")
 		return
 	}
 
@@ -16,7 +16,7 @@ fn run*(url: str, argi: int) {
 
 	ok, meta := common.getMeta("box.json") 
 	if !ok {
-		printf("Not in an UmBox directory.\n")
+		fprintf(std.stderr(), "Not in an UmBox directory.\n")
 		return
 	}
 

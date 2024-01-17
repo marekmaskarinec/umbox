@@ -15,7 +15,8 @@
 		"os",
 		"tar",
 		"strings",
-		"blake2"
+		"blake2",
+		"umka"
 	],
 	"include": [
 	],
