@@ -131,6 +131,7 @@ fn run*(url: str, argi: int) {
 
 		if v == "-c" {
 			copyDeps = true
+			printf("NOTE: The -c flag is experimental. It is advised to always remove the umbox/\ndirectory before running update with this flag\n")
 		} else {
 			printf("usage: umbox update [ -c ]\n  -c: Don't use symlinks\n")
 			return
