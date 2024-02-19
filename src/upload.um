@@ -41,19 +41,10 @@ fn run*(url: str, argi: int) {
 	}
 	f := std.fopen(file, "rb")
 	r := io.mkFile(f)
-	w := io.mkMemory({})
-	reqUrl := sprintf("%s/api/package/%s/upload/%s", url, meta.name, filepath.file(file))
-	resp := http.post(reqUrl, r, w, {
-		headers: { sprintf("Authorization: UmBox %s", tokenHashStr) }
-	})
 	
+	reqUrl := sprintf("api/package/%s/upload/%s", meta.name, filepath.file(file))
+	resp := common.post(r, url, reqUrl, tokenHashStr)
 	if !resp.ok {
-		fprintf(std.stderr(), "Upload failed: %s\n", resp.err)
-		return
-	}   
-
-	if resp.status != 200 {
-		fprintf(std.stderr(), "Upload failed: %s (%d)\n", str([]char(w.read())), resp.status)
-		return
+		error(resp.msg)
 	}
 }

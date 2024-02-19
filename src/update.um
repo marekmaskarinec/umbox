@@ -39,7 +39,11 @@ fn fetchDep(dep: str, versions: ^map[str]str) {
 	os.mkdirp(filepath.join("umbox", dep))
 
 	// fetch and extract box.tar
-	tf, err := tar.openBytes(common.download(dep, "box.tar"))
+	d, ok, msg := common.download(dep, "box.tar")
+	if !ok {
+		error(msg)
+	}
+	tf, err := tar.openBytes(d)
 	if err != 0 {
 		fprintf(std.stderr(), "Error parsing box.tar: %s\n", tar.strerror(err))
 		exit()
@@ -80,7 +84,13 @@ fn fetchDep(dep: str, versions: ^map[str]str) {
 		}
 	}
 	      
-	versions[dep] = str([]char(common.download(dep, "version")))
+	{
+		d, ok, msg := common.download(dep, "version")
+		if !ok {
+			error(msg)
+		}
+		versions[dep] = str([]char(d))
+	}
 }
 
 fn fetchDeps(deps: []str, versions: ^map[str]str) {
@@ -100,10 +110,16 @@ fn fetchDeps(deps: []str, versions: ^map[str]str) {
 		}
 
 		// Check for new versions.
-		if versions[dep] != str([]char(common.download(dep, "version"))) {
-			fprintf(std.stderr(), "Updating %s...\n", dep)
-			fetchDep(dep, versions)
-			continue
+		{
+			d, ok, msg := common.download(dep, "version")
+			if !ok {
+				error(msg)
+			}
+			if versions[dep] != str([]char(d)) {
+				fprintf(std.stderr(), "Updating %s...\n", dep)
+				fetchDep(dep, versions)
+				continue
+			}
 		}
 	}
 }

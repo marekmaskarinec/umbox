@@ -1,6 +1,7 @@
 
 import (
 	"std.um"
+	"common.um"
 	"../umbox/http/http.um"
 	"../umbox/io/io.um"
 )
@@ -14,11 +15,10 @@ fn run*(url: str, argi: int) {
 	name := std.argv(argi)
 
 	w := io.mkMemory({})
-	resp := http.get(sprintf("%s/api/register/%s", url, name), w)
+	resp := common.get(url, sprintf("api/register/%s", name))
 	if !resp.ok {
-		fprintf(std.stderr(), "Registering failed: %s", resp.err)
-		return
+		error(resp.msg)
 	}
 	      
-	fprintf(std.stderr(), "%s\n", str([]char(w.read())))
+	printf("%s\n", str(resp.data))
 }

@@ -180,18 +180,86 @@ fn getMeta*(path: str): (bool, Meta) {
 	return true, m
 }
 
-fn download*(package, file: str): []uint8 {
+type ApiResp* = struct {
+	ok: bool
+	status: int
+	data: any
+	msg: str
+}
+
+fn parseResp(r: io.Reader, resp: http.Response): ApiResp {
+	if !resp.ok {
+		return {
+			ok: false,
+			status: -1,
+			msg: resp.err
+		}
+	}
+		  
+	out := ApiResp{}
+	out.status = resp.status
+	
+	payload := json.parse(str([]char(r.read())))
+	if errs := ^[]json.Error(payload); errs != null {
+		out.ok = false
+		out.status = -2
+		for _, err in errs {
+			out.msg += sprintf("(%d): %s\n", err.lno, err.message)
+		}
+		return out
+	}
+	
+	if data := ^map[str]any(payload); data != null {
+		out.ok = bool(data["ok"])
+		if out.ok {
+			out.data = data["data"]
+		} else {
+			out.msg = str(data["msg"])
+		}
+	} else {
+		out.ok = false
+		out.msg = "invalid json"
+		out.status = -3
+	}
+	
+	return out
+}
+
+fn get*(url, endpoint: str, token: str = ""): ApiResp {
+	url = sprintf("%s/%s", url, endpoint)
+	rw := io.mkMemory({})
+	par := http.GetParams{
+		userAgent: "umbox-cli"
+	}
+		 
+	if len(token) > 0 {
+		par.headers = append(par.headers, "Authorization: UmBox " + token)
+	}
+	
+	return parseResp(rw, http.get(url, rw, par))
+}
+
+fn post*(data: io.Reader, url, endpoint: str, token: str = ""): ApiResp {
+	url = sprintf("%s/%s", url, endpoint)
+	rw := io.mkMemory({})
+	par := http.PostParams{
+		userAgent: "umbox-cli"
+	}
+		 
+	if len(token) > 0 {
+		par.headers = append(par.headers, "Authorization: UmBox " + token)
+	}
+	
+	return parseResp(rw, http.post(url, data, rw, par))
+}
+
+fn download*(package, file: str): ([]uint8, bool, str) {
 	w := io.mkMemory({})
 	resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
 		userAgent: "umbox-cli"
 	})
 	
-	if !resp.ok || resp.status != 200 {
-		fprintf(std.stderr(), "Downloading %s/%s failed: %d %s\n", package, file, resp.status, resp.err)
-		exit()
-	}
-	
-	return w.read()
+	return w.read(), resp.ok && resp.status == 200, resp.err
 }
 
 fn exists*(package: str, file: str = "version"): bool {
@@ -200,5 +268,5 @@ fn exists*(package: str, file: str = "version"): bool {
 		userAgent: "umbox-cli"
 	})
 
-	return resp.status == 200
+	return resp.ok && resp.status == 200
 }

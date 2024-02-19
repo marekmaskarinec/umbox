@@ -15,7 +15,10 @@ fn downloadPreset(packageName: str): (common.Meta, str) {
 		return {}, sprintf("Box '%s' doesn't have an init preset", packageName)
 	}
 
-	dat := common.download(packageName, "init.tar")
+	dat, ok, msg := common.download(packageName, "init.tar")
+	if !ok {
+		error(msg)
+	}
 
 	tf, err := tar.openBytes(dat)
 	if err != 0 {
