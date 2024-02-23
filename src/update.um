@@ -12,7 +12,7 @@ import (
 	"common.um"
 )
 
-fn fetchDeps(deps: []str, versions: ^map[str]str)
+fn fetchDeps(deps: []common.Box, versions: ^map[str]str)
 
 var (
 	copyDeps: bool = false
@@ -30,16 +30,16 @@ fn copyFile(p1, p2: str) {
 	std.fclose(f2)
 }
 
-fn fetchDep(dep: str, versions: ^map[str]str) {
-	if !common.exists(dep) {
+fn fetchDep(dep: common.Box, versions: ^map[str]str) {
+	if !dep.exists() {
 		fprintf(std.stderr(), "No such package: %s\n", dep)
 		exit()
 	}
 	
-	os.mkdirp(filepath.join("umbox", dep))
+	os.mkdirp(filepath.join("umbox", dep.getName()))
 
 	// fetch and extract box.tar
-	d, ok, msg := common.download(dep, "box.tar")
+	d, ok, msg := dep.download("box.tar")
 	if !ok {
 		error(msg)
 	}
@@ -49,74 +49,74 @@ fn fetchDep(dep: str, versions: ^map[str]str) {
 		exit()
 	}
 	
-	err = tf.extract(filepath.join("umbox", dep, ""))
+	err = tf.extract(filepath.join("umbox", dep.getName(), ""))
 	if err != 0 {
 		fprintf(std.stderr(), "Error extracting box.tar: %s\n", tar.strerror(err))
 		exit()
 	}
 	
 	// Fetch dependencies
-	ok, meta := common.getMeta(filepath.join("umbox", dep, "box.json"))
+	ok, meta := common.getMeta(filepath.join("umbox", dep.getName(), "box.json"))
 	if !ok {
-		fprintf(std.stderr(), "Error parsing %s\n", filepath.join("umbox", dep, "box.json"))
+		fprintf(std.stderr(), "Error parsing %s\n", filepath.join("umbox", dep.getName(), "box.json"))
 		exit()
 	}
 	fetchDeps(meta.dependencies, versions)
-	
+
 	// Create symlinks for dependencies
-	os.mkdirp(filepath.join("umbox", dep, "umbox"))
+	os.mkdirp(filepath.join("umbox", dep.getName(), "umbox"))
 	for i,d in meta.dependencies {
 		if copyDeps {
-			os.walk(filepath.join("umbox", d), |dep, d| {
+			os.walk(filepath.join("umbox", d.getName()), |dep, d| {
 				file2 := filepath.join(
-					"umbox", dep, "umbox", d,
-					strings.trimprefix(file, filepath.join("umbox", d))
+					"umbox", dep.getName(), "umbox", d.getName(),
+					strings.trimprefix(file, filepath.join("umbox", d.getName()))
 				)
 
 				os.mkdirp(filepath.dir(file2))
 				copyFile(file, file2)
 			}, { excludeDirs: true })
 		} else {
-			err := os.link(filepath.join("..", "..", d), filepath.join("umbox", dep, "umbox", d))
+			err := os.link(filepath.join("..", "..", d.getName()), filepath.join("umbox", dep.getName(), "umbox", d.getName()))
 			if err != 0 && os.getPlatform() == os.PlatformWindows {
-				std.system("mklink /j " + filepath.join("umbox", dep, "umbox", d) + " " + filepath.join("umbox", d))
+				std.system("mklink /j " + filepath.join("umbox", dep.getName(), "umbox", d.getName()) + " " + filepath.join("umbox", d.getName()))
 			}
 		}
 	}
-	      
+
 	{
-		d, ok, msg := common.download(dep, "version")
+		d, ok, msg := dep.download("version")
 		if !ok {
 			error(msg)
 		}
-		versions[dep] = str([]char(d))
+		versions[dep.getName()] = str([]char(d))
 	}
 }
 
-fn fetchDeps(deps: []str, versions: ^map[str]str) {
+fn fetchDeps(deps: []common.Box, versions: ^map[str]str) {
 	for i,dep in deps {
 		// If the dependency doesn't exist, fetch it.
-		if !os.isdir(filepath.join("umbox", dep)) {
-			fprintf(std.stderr(), "Downloading %s...\n", dep)
+		if !os.isdir(filepath.join("umbox", dep.getName())) {
+			fprintf(std.stderr(), "Downloading %s...\n", dep.getName())
 			fetchDep(dep, versions)
 			continue
 		}
 
 		// If the dependency doesn't have a known version, fetch it.
-		if !validkey(versions^, dep) {
-			fprintf(std.stderr(), "Downloading %s...\n", dep)
+		if !validkey(versions^, dep.getName()) {
+			fprintf(std.stderr(), "Downloading %s...\n", dep.getName())
 			fetchDep(dep, versions)
 			continue
 		}
 
 		// Check for new versions.
 		{
-			d, ok, msg := common.download(dep, "version")
+			d, ok, msg := dep.download("version")
 			if !ok {
 				error(msg)
 			}
-			if versions[dep] != str([]char(d)) {
-				fprintf(std.stderr(), "Updating %s...\n", dep)
+			if versions[dep.getName()] != str([]char(d)) {
+				fprintf(std.stderr(), "Updating %s...\n", dep.getName())
 				fetchDep(dep, versions)
 				continue
 			}
@@ -137,7 +137,7 @@ fn touchDep(dep: str, touched: ^map[str]bool) {
 	}
 
 	for i, dep in meta.dependencies {
-		touchDep(dep, touched)
+		touchDep(dep.getName(), touched)
 	}
 }
 
@@ -178,7 +178,7 @@ fn run*(url: str, argi: int) {
 
 	touched := map[str]bool{}
 	for i,dep in meta.dependencies {
-		touchDep(dep, &touched)
+		touchDep(dep.getName(), &touched)
 	}
 		
 	enc := jsonenc.mk(true)

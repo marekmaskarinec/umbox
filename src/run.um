@@ -41,7 +41,7 @@ fn run*(url: str, argi: int) {
 	path := std.getenv("PATH")
 	for i,d in meta.dependencies {
 		cwd, err := os.getCwd()
-		path = filepath.join(cwd, "umbox", d) + pathSep + path
+		path = filepath.join(cwd, "umbox", d.getName()) + pathSep + path
 	}
 	os.setEnv("PATH", path)
 

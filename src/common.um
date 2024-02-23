@@ -1,14 +1,121 @@
 
 import (
 	"std.um"
-	"../umbox/os/os.um"
-	"../umbox/json/json.um"
-	"../umbox/io/io.um"
 	"../umbox/http/http.um"
+	"../umbox/io/io.um"
+	"../umbox/json/json.um"
 	"../umbox/jsonenc/jsonenc.um"
+	"../umbox/os/os.um"
+	"../umbox/strings/strings.um"
+	"../umbox/tar/tar.um"
 )
 
 var url*: str = "https://umbox.tophat2d.dev/"
+
+type Box* = interface {
+	exists(file: str = "version"): bool
+	download(file: str = "box.tar"): ([]uint8, bool, str)
+	encode(): str
+	getName(): str
+}
+
+type HTTPBox* = struct {
+	name: str
+	url: str
+}
+
+fn (b: ^HTTPBox) getName*(): str {
+	return b.name
+}
+
+fn (b: ^HTTPBox) exists*(file: str = "version"): bool {
+	w := io.mkMemory({})
+	resp := http.get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), w, {
+		userAgent: "umbox-cli"
+	})
+
+	return resp.ok && resp.status == 200
+}
+
+fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]uint8, bool, str) {
+	w := io.mkMemory({})
+	resp := http.get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), w, {
+		userAgent: "umbox-cli"
+	})
+	   
+	msg := resp.err
+	if resp.status != 200 {
+		msg = str([]char(w.read()))
+	}
+	
+	return w.read(), resp.ok && resp.status == 200, msg
+}
+
+fn (b: ^HTTPBox) encode*(): str {
+	if b.url != "https://umbox.tophat2d.dev" {
+		return sprintf("%s@%s", b.name, b.url)
+	}
+	
+	return b.name
+}
+
+type FileBox* = struct {
+	name: str
+	path: str
+	handle: tar.Tar
+}
+
+fn (b: ^FileBox) open(): tar.Errno {
+	var err: tar.Errno
+	b.handle, err = tar.open(b.path, "r")
+
+	return err
+}
+
+fn (b: ^FileBox) getName*(): str {
+	return b.name
+}
+
+fn (b: ^FileBox) exists*(file: str = "version"): bool {
+	if b.handle._ == null {
+		if err := b.open(); err != 0 {
+			return false
+		}
+	}
+	
+	dat, err := b.handle.read(file)
+	return err == 0
+}
+
+fn (b: ^FileBox) download*(file: str = "box.tar"): ([]uint8, bool, str) {
+	if file == "box.tar" {
+		f := std.fopen(b.path, "r")
+		if f == null {
+			return {}, false, "File not found"
+		}
+		d := io.mkFile(f).read()
+		std.fclose(f)
+
+		return d, true, ""
+	}
+
+	if b.handle._ == null {
+		if err := b.open(); err != 0 {
+			return {}, false, tar.strerror(err)
+		}
+	}
+
+	dat, err := b.handle.read(file)
+	if err != 0 {
+		return {}, false, tar.strerror(err)
+	}
+	
+	return dat, true, ""
+}
+
+fn (b: ^FileBox) encode*(): str {
+	return sprintf("%s@file://%s", b.name, b.path)
+}
 
 type Meta* = struct {
 	name: str
@@ -18,7 +125,7 @@ type Meta* = struct {
 	description: str
 	readme: str
 	link: str
-	dependencies: []str
+	dependencies: []Box
 	include: []str
 	run: str
 	runPosix: str
@@ -40,7 +147,7 @@ fn (m: ^Meta) toJSON*(): str {
 		enc.putKey("link"); enc.putVal(m.link)
 		enc.putKey("dependencies"); enc.startArray()
 			for i,v in m.dependencies {
-				enc.putVal(v)
+				enc.putVal(v.encode())
 			}
 		enc.endArray()
 			
@@ -72,6 +179,33 @@ fn (m: ^Meta) toJSON*(): str {
 	enc.endObject()
 
 	return enc.toStr()
+}
+
+fn parseDep*(dep: str): Box {
+	if !strings.contains(dep, "@") {
+		return HTTPBox{
+			name: dep,
+			url: "https://umbox.tophat2d.dev"
+		}
+	}
+	
+	sp := strings.split(dep, "@")
+	name := sp[0]
+	source := sp[1]
+	
+	if strings.has_prefix(source, "http://") || strings.has_prefix(source, "https://") {
+		return HTTPBox{
+			name: name,
+			url: source
+		}
+	} else if strings.has_prefix(source, "file://") {
+		return FileBox{
+			name: name,
+			path: strings.trimprefix(source, "file://")
+		}
+	}
+		
+	return null
 }
 
 fn getMeta*(path: str): (bool, Meta) {
@@ -138,9 +272,13 @@ fn getMeta*(path: str): (bool, Meta) {
 	}
 
 	if ^[]any(r["dependencies"]) != null {
-		m.dependencies = make([]str, len([]any(r["dependencies"])))
+		m.dependencies = make([]Box, len([]any(r["dependencies"])))
 		for i, v in []any(r["dependencies"]) {
-			m.dependencies[i] = str(v)
+			m.dependencies[i] = parseDep(str(v))
+			if !valid(m.dependencies[i]) {
+				fprintf(std.stderr(), "Malformed dependency %s\n", str(v))
+				return false, {}
+			}
 		}
 	} else {
 		fprintf(std.stderr(), "%s: missing key 'dependencies'\n", path)
@@ -148,10 +286,7 @@ fn getMeta*(path: str): (bool, Meta) {
 	}
 
 	if ^[]any(r["include"]) != null {
-		m.include = make([]str, len([]any(r["include"])))
-		for i, v in []any(r["include"]) {
-			m.include[i] = str(v)
-		}
+		m.include = []str([]any(r["include"]))
 	} else {
 		fprintf(std.stderr(), "%s: missing key 'include'\n", path)
 		return false, {}
@@ -251,27 +386,4 @@ fn post*(data: io.Reader, url, endpoint: str, token: str = ""): ApiResp {
 	}
 	
 	return parseResp(rw, http.post(url, data, rw, par))
-}
-
-fn download*(package, file: str): ([]uint8, bool, str) {
-	w := io.mkMemory({})
-	resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
-		userAgent: "umbox-cli"
-	})
-	   
-	msg := resp.err
-	if resp.status != 200 {
-		msg = str([]char(w.read()))
-	}
-	
-	return w.read(), resp.ok && resp.status == 200, msg
-}
-
-fn exists*(package: str, file: str = "version"): bool {
-	w := io.mkMemory({})
-	resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
-		userAgent: "umbox-cli"
-	})
-
-	return resp.ok && resp.status == 200
 }

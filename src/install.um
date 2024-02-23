@@ -12,7 +12,7 @@ fn run*(url: str, argi: int) {
 		return
 	}
 	
-	name := std.argv(argi)
+	box := common.parseDep(std.argv(argi))
 
 	ok, meta := common.getMeta("box.json") 
 	if !ok {
@@ -20,21 +20,21 @@ fn run*(url: str, argi: int) {
 		return
 	}
 
-	if !common.exists(name) {
-		fprintf(std.stderr(), "Box '%s' does not exist.\n", name)
+	if !box.exists() {
+		fprintf(std.stderr(), "Box '%s' does not exist.\n", box.getName())
 		return
 	}
 
 	exists := false
 	for i,dep in meta.dependencies {
-		if dep == name {
+		if dep.getName() == box.getName() {
 			exists = true
 			break
 		}
 	}
 
 	if !exists {
-		meta.dependencies = append(meta.dependencies, name)
+		meta.dependencies = append(meta.dependencies, box)
 	}
 
 	f := std.fopen("box.json", "w")

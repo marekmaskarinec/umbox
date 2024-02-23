@@ -10,12 +10,12 @@ import (
 	"../umbox/os/os.um"
 )
 
-fn downloadPreset(packageName: str): (common.Meta, str) {
-	if !common.exists(packageName, "init.tar") {
-		return {}, sprintf("Box '%s' doesn't have an init preset", packageName)
+fn downloadPreset(box: common.Box): (common.Meta, str) {
+	if !box.exists("init.tar") {
+		return {}, sprintf("Box '%s' doesn't have an init preset", box.getName())
 	}
 
-	dat, ok, msg := common.download(packageName, "init.tar")
+	dat, ok, msg := box.download("init.tar")
 	if !ok {
 		error(msg)
 	}
@@ -55,8 +55,8 @@ fn run*(url: str, argi: int) {
 	}
 
 	if std.argc() == 3 {
-		preset := std.argv(argi)
-		if !common.exists(preset) {
+		preset := common.parseDep(std.argv(argi))
+		if !preset.exists() {
 			fprintf(std.stderr(), "Box '%s' doesn't exist\n", preset)
 			return
 		}

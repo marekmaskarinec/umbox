@@ -12,7 +12,7 @@ fn run*(url: str, argi: int) {
 		return
 	}
 
-	name := std.argv(argi)
+	box := common.parseDep(std.argv(argi))
 
 	ok, meta := common.getMeta("box.json") 
 	if !ok {
@@ -21,7 +21,7 @@ fn run*(url: str, argi: int) {
 	}
 
 	for i,dep in meta.dependencies {
-		if dep == name {
+		if dep.getName() == box.getName() {
 			meta.dependencies = delete(meta.dependencies, i)
 			break
 		}
