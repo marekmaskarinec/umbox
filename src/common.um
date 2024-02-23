@@ -77,6 +77,10 @@ fn (b: ^FileBox) getName*(): str {
 }
 
 fn (b: ^FileBox) exists*(file: str = "version"): bool {
+	if file == "version" {
+		return os.isfile(b.path)
+	}
+
 	if b.handle._ == null {
 		if err := b.open(); err != 0 {
 			return false
@@ -97,6 +101,15 @@ fn (b: ^FileBox) download*(file: str = "box.tar"): ([]uint8, bool, str) {
 		std.fclose(f)
 
 		return d, true, ""
+	}
+	
+	if file == "version" {
+		sb, err := os.stat(b.path)
+		if err != 0 {
+			return {}, false, os.strerror(err)
+		}
+		
+		return []uint8([]char(std.itoa(sb.mtime))), true, ""
 	}
 
 	if b.handle._ == null {

@@ -35,14 +35,6 @@ fn run*(url: str, argi: int) {
 		t.addFile(meta.readme)
 	}
 	
-	{
-		f := std.fopen("version", "w")
-		fprintf(f, meta.version)
-		std.fclose(f)
-		t.addFile("version")
-		os.remove("version")
-	}
-	
 	for i,f in meta.include {
 		if os.isfile(f) {
 			t.addFile(f)
