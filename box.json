@@ -19,7 +19,5 @@
 		"umka"
 	],
 	"include": [
-	],
-	"run_posix": "./umbox/umka/linux/umka umbox.um",
-	"run_windows": "./umbox/umka/windows/umka.exe umbox.um"
+	]
 }
