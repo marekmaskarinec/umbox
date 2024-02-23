@@ -258,8 +258,13 @@ fn download*(package, file: str): ([]uint8, bool, str) {
 	resp := http.get(sprintf("%s/api/package/%s/download/%s", url, package, file), w, {
 		userAgent: "umbox-cli"
 	})
+	   
+	msg := resp.err
+	if resp.status != 200 {
+		msg = str([]char(w.read()))
+	}
 	
-	return w.read(), resp.ok && resp.status == 200, resp.err
+	return w.read(), resp.ok && resp.status == 200, msg
 }
 
 fn exists*(package: str, file: str = "version"): bool {
