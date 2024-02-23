@@ -89,7 +89,7 @@ fn (b: ^FileBox) exists*(file: str = "version"): bool {
 
 fn (b: ^FileBox) download*(file: str = "box.tar"): ([]uint8, bool, str) {
 	if file == "box.tar" {
-		f := std.fopen(b.path, "r")
+		f := std.fopen(b.path, "rb")
 		if f == null {
 			return {}, false, "File not found"
 		}
