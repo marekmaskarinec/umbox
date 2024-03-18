@@ -8,17 +8,17 @@ import (
 	"common.um"
 )
 
-fn run*(url: str, argi: int) {
+fn run*(url: str, argi: int): std.Err {
 	if argi != std.argc() - 1 {
 		fprintf(std.stderr(), "Usage: umbox search <query>\n")
-		return
+		return {}
 	}
 
 	query := std.argv(argi)
 
 	resp := common.get(url, sprintf("api/search/%s", query))
 	if !resp.ok {
-		error(resp.msg)
+		return std.error(1, resp.msg)
 	}
 
 	res := []any(resp.data)
@@ -26,4 +26,6 @@ fn run*(url: str, argi: int) {
 		o := map[str]any(r)
 		printf("%s - %s\n", str(o["name"]), str(o["description"]))
 	}
+
+	return {}
 }

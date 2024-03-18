@@ -9,10 +9,10 @@ import (
 	"common.um"
 )
 
-fn run*(url: str, argi: int) {
+fn run*(url: str, argi: int): std.Err {
 	if argi != std.argc() - 2 {
 		fprintf(std.stderr(), "usage: umbox upload <token> <file>\n")
-		return
+		return {}
 	}
 	
 	token := std.argv(argi)
@@ -20,31 +20,30 @@ fn run*(url: str, argi: int) {
 	
 	if !os.isfile(file) {
 		fprintf(std.stderr(), "File not found\n")
-		return
+		return {}
 	}
 		   
 	if len(token) != 64 {
 		fprintf(std.stderr(), "Invalid token\n")
-		return
+		return {}
 	}
 	
-	ok, meta := common.getMeta("box.json")
-	if !ok {
-		fprintf(std.stderr(), "Not in an UmBox directory\n")
-		return
+	meta, err := common.getMeta("box.json")
+	if err.code != 0 {
+		return err
 	}
-				
+
 	tokenHash := blake2.blake2b([]uint8([]char(token)))
 	tokenHashStr := ""
 	for i,b in tokenHash {
 		tokenHashStr += sprintf("%02x", b)
 	}
-	f := std.fopen(file, "rb")
-	r := io.mkFile(f)
+	f := std.fopen(file, "rb").item0
 	
 	reqUrl := sprintf("api/package/%s/upload/%s", meta.name, filepath.file(file))
-	resp := common.post(r, url, reqUrl, tokenHashStr)
+	resp := common.post(std.freadall(f).item0, url, reqUrl, tokenHashStr)
 	if !resp.ok {
-		error(resp.msg)
+		return std.error(1, resp.msg)
 	}
+	return {}
 }

@@ -12,56 +12,53 @@ import (
 	"common.um"
 )
 
-fn fetchDeps(deps: []common.Box, versions: ^map[str]str)
+fn fetchDeps(deps: []common.Box, versions: ^map[str]str): std.Err
 
 var (
 	copyDeps: bool = false
 )
 
 fn copyFile(p1, p2: str) {
-	f1 := std.fopen(p1, "rb")
-	r := io.mkFile(f1)
-	f2 := std.fopen(p2, "wb")
-	w := io.mkFile(f2)
-
-	w.write(r.read())
-
+	f1, err := std.fopen(p1, "rb")
+	d, err := std.freadall(f1)
+	f2, err := std.fopen(p2, "wb")
+	std.fwrite(f2, d)
 	std.fclose(f1)
 	std.fclose(f2)
 }
 
-fn fetchDep(dep: common.Box, versions: ^map[str]str) {
+fn fetchDep(dep: common.Box, versions: ^map[str]str): std.Err {
 	if !dep.exists() {
-		fprintf(std.stderr(), "No such package: %s\n", dep)
-		exit()
+		return std.error(255, "package not found")
 	}
 	
 	os.mkdirp(filepath.join("umbox", dep.getName()))
 
 	// fetch and extract box.tar
-	d, ok, msg := dep.download("box.tar")
-	if !ok {
-		error(msg)
+	d, err := dep.download("box.tar")
+	if err.code != 0 {
+		return err
 	}
-	tf, err := tar.openBytes(d)
-	if err != 0 {
-		fprintf(std.stderr(), "Error parsing box.tar: %s\n", tar.strerror(err))
-		exit()
+	tf, err := tar.openBytes([]uint8(d))
+	if err.code != 0 {
+		return err
 	}
 	
 	err = tf.extract(filepath.join("umbox", dep.getName(), ""))
-	if err != 0 {
-		fprintf(std.stderr(), "Error extracting box.tar: %s\n", tar.strerror(err))
-		exit()
+	if err.code != 0 {
+		return err
 	}
 	
 	// Fetch dependencies
-	ok, meta := common.getMeta(filepath.join("umbox", dep.getName(), "box.json"))
-	if !ok {
-		fprintf(std.stderr(), "Error parsing %s\n", filepath.join("umbox", dep.getName(), "box.json"))
-		exit()
+	meta, err := common.getMeta(filepath.join("umbox", dep.getName(), "box.json"))
+	if err.code != 0 {
+		return err
 	}
-	fetchDeps(meta.dependencies, versions)
+
+	err = fetchDeps(meta.dependencies, versions)
+	if err.code != 0 {
+		return err
+	}
 
 	// Create symlinks for dependencies
 	os.mkdirp(filepath.join("umbox", dep.getName(), "umbox"))
@@ -77,71 +74,89 @@ fn fetchDep(dep: common.Box, versions: ^map[str]str) {
 				copyFile(file, file2)
 			}, { excludeDirs: true })
 		} else {
-			err := os.link(filepath.join("..", "..", d.getName()), filepath.join("umbox", dep.getName(), "umbox", d.getName()))
-			if err != 0 && os.getPlatform() == os.PlatformWindows {
+			oserr := os.link(filepath.join("..", "..", d.getName()), filepath.join("umbox", dep.getName(), "umbox", d.getName()))
+			if oserr != 0 && os.getPlatform() == os.PlatformWindows {
 				std.system("mklink /j " + filepath.join("umbox", dep.getName(), "umbox", d.getName()) + " " + filepath.join("umbox", d.getName()))
 			}
 		}
 	}
 
 	{
-		d, ok, msg := dep.download("version")
-		if !ok {
-			error(msg)
+		d, err := dep.download("version")
+		if err.code != 0 {
+			return err
 		}
 		versions[dep.getName()] = str([]char(d))
 	}
+
+	return {}
 }
 
-fn fetchDeps(deps: []common.Box, versions: ^map[str]str) {
+fn fetchDeps(deps: []common.Box, versions: ^map[str]str): std.Err {
 	for i,dep in deps {
 		// If the dependency doesn't exist, fetch it.
 		if !os.isdir(filepath.join("umbox", dep.getName())) {
 			fprintf(std.stderr(), "Downloading %s...\n", dep.getName())
-			fetchDep(dep, versions)
+			err := fetchDep(dep, versions)
+			if err.code != 0 {
+				return err
+			}
 			continue
 		}
 
 		// If the dependency doesn't have a known version, fetch it.
 		if !validkey(versions^, dep.getName()) {
 			fprintf(std.stderr(), "Downloading %s...\n", dep.getName())
-			fetchDep(dep, versions)
+			err := fetchDep(dep, versions)
+			if err.code != 0 {
+				return err
+			}
 			continue
 		}
 
 		// Check for new versions.
 		{
-			d, ok, msg := dep.download("version")
-			if !ok {
-				error(msg)
+			d, err := dep.download("version")
+			if err.code != 0 {
+				return err
 			}
 			if versions[dep.getName()] != str([]char(d)) {
 				fprintf(std.stderr(), "Updating %s...\n", dep.getName())
-				fetchDep(dep, versions)
+				err = fetchDep(dep, versions)
+				if err.code != 0 {
+					return err
+				}
 				continue
 			}
 		}
 	}
+
+	return {}
 }
 
-fn touchDep(dep: str, touched: ^map[str]bool) {
+fn touchDep(dep: str, touched: ^map[str]bool): std.Err {
 	if validkey(touched^, dep) {
-		return
+		return {}
 	}
 
 	touched[dep] = true
 
-	ok, meta := common.getMeta(filepath.join("umbox", dep, "box.json"))
-	if !ok {
-		return
+	meta, err := common.getMeta(filepath.join("umbox", dep, "box.json"))
+	if err.code != 0 {
+		return err
 	}
 
 	for i, dep in meta.dependencies {
-		touchDep(dep.getName(), touched)
+		err = touchDep(dep.getName(), touched)
+		if err.code != 0 {
+			return err
+		}
 	}
+
+	return {}
 }
 
-fn run*(url: str, argi: int) {
+fn run*(url: str, argi: int): std.Err {
 	for argi < std.argc() {
 		v := std.argv(argi)
 
@@ -150,23 +165,22 @@ fn run*(url: str, argi: int) {
 			printf("NOTE: The -c flag is experimental. It is advised to always remove the umbox/\ndirectory before running update with this flag\n")
 		} else {
 			printf("usage: umbox update [ -c ]\n  -c: Don't use symlinks\n")
-			return
+			return {}
 		}
 
 		argi++
 	}
 
-	ok, meta := common.getMeta("box.json")
-	if !ok {
-		fprintf(std.stderr(), "Not in an UmBox directory.\n")
-		return
+	meta, err := common.getMeta("box.json")
+	if err.code != 0 {
+		return err
 	}
 	
 	os.mkdirp("umbox")
 
 	versions := map[str]str{}
 	if os.isfile(filepath.join("umbox", "versions.json")) {
-		f := std.fopen(filepath.join("umbox", "versions.json"), "r")
+		f := std.fopen(filepath.join("umbox", "versions.json"), "r").item0
 		r := map[str]any(json.parse(str([]char(io.mkFile(f).read()))))
 		std.fclose(f)
 		for k,v in r {
@@ -174,11 +188,17 @@ fn run*(url: str, argi: int) {
 		}
 	}
 
-	fetchDeps(meta.dependencies, &versions)
+	err = fetchDeps(meta.dependencies, &versions)
+	if err.code != 0 {
+		return err
+	}
 
 	touched := map[str]bool{}
 	for i,dep in meta.dependencies {
-		touchDep(dep.getName(), &touched)
+		err = touchDep(dep.getName(), &touched)
+		if err.code != 0 {
+			return err
+		}
 	}
 		
 	enc := jsonenc.mk(true)
@@ -191,7 +211,7 @@ fn run*(url: str, argi: int) {
 	}
 	enc.endObject()
 
-	f := std.fopen(filepath.join("umbox", "versions.json"), "w")
+	f := std.fopen(filepath.join("umbox", "versions.json"), "w").item0
 	fprintf(f, "%s", enc.toStr())
 	std.fclose(f)
 	
@@ -213,4 +233,6 @@ fn run*(url: str, argi: int) {
 			os.remove(filepath.join("umbox", d))
 		}
 	}
+
+	return {}
 }

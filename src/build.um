@@ -13,11 +13,8 @@ fn run*(url: str, argi: int) {
 		return
 	}
 
-	ok, meta := common.getMeta("box.json") 
-	if !ok {
-		fprintf(std.stderr(), "Not in an UmBox directory.\n")
-		return
-	}
+	meta, err := common.getMeta("box.json") 
+	std.exitif(err)
 	
 	if len(meta.preBuild) > 0 {
 		code := std.system(meta.preBuild)
@@ -29,6 +26,7 @@ fn run*(url: str, argi: int) {
 	}
 	
 	t, err := tar.open("box.tar", "w")
+	std.exitif(err)
 	
 	t.addFile("box.json")
 	if len(meta.readme) > 0 {
@@ -46,16 +44,10 @@ fn run*(url: str, argi: int) {
 	}
 	
 	err = t.finalize()
-	if err != 0 {
-		fprintf(std.stderr(), "Error finalizing tar: %s\n", tar.strerror(err))
-		return
-	}
+	std.exitif(err)
 	
 	err = t.close()
-	if err != 0 {
-		fprintf(std.stderr(), "Error closing tar: %s\n", tar.strerror(err))
-		return
-	}
+	std.exitif(err)
 	
 	if len(meta.postBuild) > 0 {
 		code := std.system(meta.postBuild)

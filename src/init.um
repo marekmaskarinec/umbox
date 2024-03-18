@@ -10,43 +10,43 @@ import (
 	"../umbox/os/os.um"
 )
 
-fn downloadPreset(box: common.Box): (common.Meta, str) {
+fn downloadPreset(box: common.Box): (common.Meta, std.Err) {
 	if !box.exists("init.tar") {
-		return {}, sprintf("Box '%s' doesn't have an init preset", box.getName())
+		return {}, std.error(254, sprintf("box '%s' doesn't have an init preset", box.getName()))
 	}
 
-	dat, ok, msg := box.download("init.tar")
-	if !ok {
-		error(msg)
+	dat, err := box.download("init.tar")
+	if err.code != 0{
+		return {}, err
 	}
 
-	tf, err := tar.openBytes(dat)
-	if err != 0 {
-		return {}, tar.strerror(err)
+	tf, err := tar.openBytes([]uint8(dat))
+	if err.code != 0 {
+		return {}, err
 	}
 
 	err = tf.extract(".")
-	if err != 0 {
-		return {}, tar.strerror(err)
+	if err.code != 0 {
+		return {}, err
 	}
 
-	ok, m := common.getMeta("box.json")
-	if !ok {
-		return m, "box.json is invalid"
+	m, err := common.getMeta("box.json")
+	if err.code != 0 {
+		return m, err
 	}
-	return m, ""
+	return m, {}
 }
 
-fn run*(url: str, argi: int) {
+fn run*(url: str, argi: int): std.Err {
 	if std.argc() < 2 {
 		fprintf(std.stderr(), "Usage: umbox init [<preset>]\n")
-		return
+		return {}
 	}
 	
 	if ls, err := os.listdir("."); len(ls) > 2 {
 		fprintf(std.stderr(), "%v\n", ls)
 		fprintf(std.stderr(), "Refusing to init a box in a non-empty directory\n")
-		return
+		return {}
 	}
 
 	m := common.Meta{
@@ -58,23 +58,22 @@ fn run*(url: str, argi: int) {
 		preset := common.parseDep(std.argv(argi))
 		if !preset.exists() {
 			fprintf(std.stderr(), "Box '%s' doesn't exist\n", preset)
-			return
+			return {}
 		}
 
-		var err: str
+		var err: std.Err
 		m, err = downloadPreset(preset)
-		if len(err) != 0 {
-			fprintf(std.stderr(), "Could not download preset: %s\n", err)
-			return
+		if err.code != 0 {
+			return err
 		}
 	}
 
 	name, err := os.getCwd()
 	m.name = filepath.file(name)
 
-	f := std.fopen("box.json", "w")
+	f := std.fopen("box.json", "w").item0
 	fprintf(f, "%s", m.toJSON())
 	std.fclose(f)
 
-	update.run(url, std.argc())
+	return update.run(url, std.argc())
 }

@@ -14,7 +14,7 @@ var url*: str = "https://umbox.tophat2d.dev/"
 
 type Box* = interface {
 	exists(file: str = "version"): bool
-	download(file: str = "box.tar"): ([]uint8, bool, str)
+	download(file: str = "box.tar"): ([]char, std.Err)
 	encode(): str
 	getName(): str
 }
@@ -29,26 +29,27 @@ fn (b: ^HTTPBox) getName*(): str {
 }
 
 fn (b: ^HTTPBox) exists*(file: str = "version"): bool {
-	w := io.mkMemory({})
-	resp := http.get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), w, {
+	resp := http.get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
 		userAgent: "umbox-cli"
 	})
 
 	return resp.ok && resp.status == 200
 }
 
-fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]uint8, bool, str) {
-	w := io.mkMemory({})
-	resp := http.get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), w, {
+fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std.Err) {
+	resp := http.get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
 		userAgent: "umbox-cli"
 	})
-	   
-	msg := resp.err
-	if resp.status != 200 {
-		msg = str([]char(w.read()))
+
+	if !resp.ok {
+		return {}, std.error(1, resp.err)
 	}
-	
-	return w.read(), resp.ok && resp.status == 200, msg
+
+	if resp.status != 200 {
+		return resp.body, std.error(resp.status, str(resp.body))
+	}
+
+	return resp.body, {}
 }
 
 fn (b: ^HTTPBox) encode*(): str {
@@ -65,8 +66,8 @@ type FileBox* = struct {
 	handle: tar.Tar
 }
 
-fn (b: ^FileBox) open(): tar.Errno {
-	var err: tar.Errno
+fn (b: ^FileBox) open(): std.Err {
+	var err: std.Err
 	b.handle, err = tar.open(b.path, "r")
 
 	return err
@@ -82,48 +83,51 @@ fn (b: ^FileBox) exists*(file: str = "version"): bool {
 	}
 
 	if b.handle._ == null {
-		if err := b.open(); err != 0 {
+		if err := b.open(); err.code != 0 {
 			return false
 		}
 	}
 	
 	dat, err := b.handle.read(file)
-	return err == 0
+	return err.code == 0
 }
 
-fn (b: ^FileBox) download*(file: str = "box.tar"): ([]uint8, bool, str) {
+fn (b: ^FileBox) download*(file: str = "box.tar"): ([]char, std.Err) {
 	if file == "box.tar" {
-		f := std.fopen(b.path, "rb")
-		if f == null {
-			return {}, false, "File not found"
+		f, err := std.fopen(b.path, "rb")
+		if err.code != 0 {
+			return {}, err
 		}
-		d := io.mkFile(f).read()
+		d, err := std.freadall(f)
+		if err.code != 0 {
+			return {}, err
+		}
 		std.fclose(f)
 
-		return d, true, ""
+		return d, {}
 	}
 	
 	if file == "version" {
-		sb, err := os.stat(b.path)
-		if err != 0 {
-			return {}, false, os.strerror(err)
+		sb, oserr := os.stat(b.path)
+		if oserr != 0 {
+			return {}, std.error(oserr, os.strerror(oserr))
 		}
 		
-		return []uint8([]char(std.itoa(sb.mtime))), true, ""
+		return []char(std.itoa(sb.mtime)), {}
 	}
 
 	if b.handle._ == null {
-		if err := b.open(); err != 0 {
-			return {}, false, tar.strerror(err)
+		if err := b.open(); err.code != 0 {
+			return {}, err
 		}
 	}
 
 	dat, err := b.handle.read(file)
-	if err != 0 {
-		return {}, false, tar.strerror(err)
+	if err.code != 0 {
+		return {}, err
 	}
 	
-	return dat, true, ""
+	return dat, {}
 }
 
 fn (b: ^FileBox) encode*(): str {
@@ -221,16 +225,30 @@ fn parseDep*(dep: str): Box {
 	return null
 }
 
-fn getMeta*(path: str): (bool, Meta) {
+fn getMeta*(path: str): (Meta, std.Err) {
 	if !os.isfile(path) {
-		return false, {}
+		return {}, std.error(1, "file not found", path)
 	}
 	
-	f := std.fopen(path, "r")
-	r := ^map[str]any(json.parse(str([]char(io.mkFile(f).read()))))
+	f, err := std.fopen(path, "r")
+	if err.code != 0 {
+		return {}, err
+	}
+
+	d, err := std.freadall(f)
+	if err.code != 0 {
+		return {}, err
+	}
+
+	parsed := json.parse(str(d))
 	std.fclose(f)
+	if errs := ^[]json.Error(parsed); errs != null {
+		return {}, std.error(1, sprintf("json parser error: %d %s", errs[0].message, errs[0].lno), path)
+	}
+
+	r := ^map[str]any(parsed)
 	if r == null {
-		return false, {}
+		return {}, std.error(1, "invalid top level json object", path)
 	}
 	   
 	m := Meta{}
@@ -238,50 +256,43 @@ fn getMeta*(path: str): (bool, Meta) {
 	if ^str(r["name"]) != null {
 		m.name = str(r["name"])
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'name'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'name'", path)
 	}
 	
 	if ^str(r["version"]) != null {
 		m.version = str(r["version"])
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'version'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'version'", path)
 	}
 	
 	if ^str(r["author"]) != null {
 		m.author = str(r["author"])
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'author'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'author'", path)
 	}
 
 	if ^str(r["license"]) != null {
 		m.license = str(r["license"])
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'license'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'license'", path)
 	}
 
 	if ^str(r["description"]) != null {
 		m.description = str(r["description"])
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'description'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'description'", path)
 	}
 
 	if ^str(r["readme"]) != null {
 		m.readme = str(r["readme"])
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'readme'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'readme'", path)
 	}
 
 	if ^str(r["link"]) != null {
 		m.link = str(r["link"])
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'link'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'link'", path)
 	}
 
 	if ^[]any(r["dependencies"]) != null {
@@ -289,20 +300,17 @@ fn getMeta*(path: str): (bool, Meta) {
 		for i, v in []any(r["dependencies"]) {
 			m.dependencies[i] = parseDep(str(v))
 			if !valid(m.dependencies[i]) {
-				fprintf(std.stderr(), "Malformed dependency %s\n", str(v))
-				return false, {}
+				return {}, std.error(1, sprintf("malformed dependency %s", str(v)), path)
 			}
 		}
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'dependencies'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'dependencies'", path)
 	}
 
 	if ^[]any(r["include"]) != null {
 		m.include = []str([]any(r["include"]))
 	} else {
-		fprintf(std.stderr(), "%s: missing key 'include'\n", path)
-		return false, {}
+		return {}, std.error(1, "missing key 'include'", path)
 	}
 
 	if ^str(r["run"]) != null {
@@ -325,7 +333,7 @@ fn getMeta*(path: str): (bool, Meta) {
 		m.postBuild = str(r["post_build"])
 	}
 
-	return true, m
+	return m, {}
 }
 
 type ApiResp* = struct {
@@ -335,7 +343,7 @@ type ApiResp* = struct {
 	msg: str
 }
 
-fn parseResp(r: io.Reader, resp: http.Response): ApiResp {
+fn parseResp(resp: http.Response): ApiResp {
 	if !resp.ok {
 		return {
 			ok: false,
@@ -347,7 +355,7 @@ fn parseResp(r: io.Reader, resp: http.Response): ApiResp {
 	out := ApiResp{}
 	out.status = resp.status
 	
-	payload := json.parse(str([]char(r.read())))
+	payload := json.parse(str(resp.body))
 	if errs := ^[]json.Error(payload); errs != null {
 		out.ok = false
 		out.status = -2
@@ -375,7 +383,6 @@ fn parseResp(r: io.Reader, resp: http.Response): ApiResp {
 
 fn get*(url, endpoint: str, token: str = ""): ApiResp {
 	url = sprintf("%s/%s", url, endpoint)
-	rw := io.mkMemory({})
 	par := http.GetParams{
 		userAgent: "umbox-cli"
 	}
@@ -384,12 +391,11 @@ fn get*(url, endpoint: str, token: str = ""): ApiResp {
 		par.headers = append(par.headers, "Authorization: UmBox " + token)
 	}
 	
-	return parseResp(rw, http.get(url, rw, par))
+	return parseResp(http.get(url, par))
 }
 
-fn post*(data: io.Reader, url, endpoint: str, token: str = ""): ApiResp {
+fn post*(data: []char, url, endpoint: str, token: str = ""): ApiResp {
 	url = sprintf("%s/%s", url, endpoint)
-	rw := io.mkMemory({})
 	par := http.PostParams{
 		userAgent: "umbox-cli"
 	}
@@ -398,5 +404,5 @@ fn post*(data: io.Reader, url, endpoint: str, token: str = ""): ApiResp {
 		par.headers = append(par.headers, "Authorization: UmBox " + token)
 	}
 	
-	return parseResp(rw, http.post(url, data, rw, par))
+	return parseResp(http.post(url, data, par))
 }

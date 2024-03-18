@@ -6,10 +6,10 @@ import (
 	"../umbox/io/io.um"
 )
 
-fn run*(url: str, argi: int) {
+fn run*(url: str, argi: int): std.Err {
 	if argi != std.argc() - 1 {
 		fprintf(std.stderr(), "Usage: umbox register <query>\n")
-		return
+		return {}
 	}
 	
 	name := std.argv(argi)
@@ -17,8 +17,10 @@ fn run*(url: str, argi: int) {
 	w := io.mkMemory({})
 	resp := common.get(url, sprintf("api/register/%s", name))
 	if !resp.ok {
-		error(resp.msg)
+		return std.error(1, resp.msg)
 	}
-	      
+     
 	printf("%s\n", str(resp.data))
+
+	return {}
 }

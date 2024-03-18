@@ -7,11 +7,10 @@ import (
 	"../umbox/strings/strings.um"
 )
 
-fn run*(url: str, argi: int) {
-	ok, meta := common.getMeta("box.json") 
-	if !ok {
-		fprintf(std.stderr(), "Not in an UmBox directory.\n")
-		return
+fn run*(url: str, argi: int): std.Err {
+	meta, err := common.getMeta("box.json") 
+	if err.code != 0 {
+		return err
 	}
 	
 	args := ""
@@ -52,6 +51,8 @@ fn run*(url: str, argi: int) {
 
 		std.system(cmd)
 	}
-	
+
 	std.system(args)
+
+	return {}
 }

@@ -6,18 +6,17 @@ import (
 	"../umbox/io/io.um"
 )
 
-fn run*(url: str, argi: int) {
+fn run*(url: str, argi: int): std.Err {
 	if argi != std.argc() - 1 {
 		fprintf(std.stderr(), "Usage: umbox install <package_name>\n")
-		return
+		return {}
 	}
 
 	box := common.parseDep(std.argv(argi))
 
-	ok, meta := common.getMeta("box.json") 
-	if !ok {
-		fprintf(std.stderr(), "Not in an UmBox directory.\n")
-		return
+	meta, err := common.getMeta("box.json") 
+	if err.code != 0 {
+		return err
 	}
 
 	for i,dep in meta.dependencies {
@@ -27,9 +26,9 @@ fn run*(url: str, argi: int) {
 		}
 	}
       
-	f := std.fopen("box.json", "w")
+	f := std.fopen("box.json", "w").item0
 	fprintf(f, "%s", meta.toJSON())
 	std.fclose(f)
 
-	update.run(url, std.argc())
+	return update.run(url, std.argc())
 }
