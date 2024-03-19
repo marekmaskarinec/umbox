@@ -108,9 +108,9 @@ fn (b: ^FileBox) download*(file: str = "box.tar"): ([]char, std.Err) {
 	}
 	
 	if file == "version" {
-		sb, oserr := os.stat(b.path)
-		if oserr != 0 {
-			return {}, std.error(oserr, os.strerror(oserr))
+		sb, err := os.stat(b.path)
+		if err.code != 0 {
+			return {}, err
 		}
 		
 		return []char(std.itoa(sb.mtime)), {}

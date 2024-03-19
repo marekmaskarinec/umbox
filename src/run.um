@@ -21,7 +21,7 @@ fn run*(url: str, argi: int): std.Err {
 	cmd := meta.run
 	pathSep := ""
 	
-	if os.getPlatform() == os.PlatformPosix {
+	if os.getPlatform() == os.Platform.posix {
 		if len(meta.runPosix) != 0 {
 			cmd = meta.runPosix
 		}
@@ -29,7 +29,7 @@ fn run*(url: str, argi: int): std.Err {
 		pathSep = ":"
 	}
 	     
-	if os.getPlatform() == os.PlatformWindows {
+	if os.getPlatform() == os.Platform.windows {
 		if len(meta.runWindows) != 0 {
 			cmd = meta.runWindows
 		}

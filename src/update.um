@@ -74,8 +74,8 @@ fn fetchDep(dep: common.Box, versions: ^map[str]str): std.Err {
 				copyFile(file, file2)
 			}, { excludeDirs: true })
 		} else {
-			oserr := os.link(filepath.join("..", "..", d.getName()), filepath.join("umbox", dep.getName(), "umbox", d.getName()))
-			if oserr != 0 && os.getPlatform() == os.PlatformWindows {
+			err := os.link(filepath.join("..", "..", d.getName()), filepath.join("umbox", dep.getName(), "umbox", d.getName()))
+			if err.code != 0 && os.getPlatform() == os.Platform.windows {
 				std.system("mklink /j " + filepath.join("umbox", dep.getName(), "umbox", d.getName()) + " " + filepath.join("umbox", d.getName()))
 			}
 		}
@@ -225,8 +225,8 @@ fn run*(url: str, argi: int): std.Err {
 			fprintf(std.stderr(), "Removing %s...\n", d)
 			os.walk(filepath.join("umbox", d), fn(path: str) |d| {
 				err := os.remove(path)
-				if err != 0 {
-					fprintf(std.stderr(), "Error removing %s: %s\n", path, os.strerror(err))
+				if err.code != 0 {
+					fprintf(std.stderr(), "Error removing %s: %s\n", path, err.msg)
 				}
 			}, { skipLinks: true })
 			
