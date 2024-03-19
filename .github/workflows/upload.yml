@@ -2,7 +2,7 @@ name: Upload workflow
 on:
   push:
     branches:
-      - main
+      - master
 jobs:
   upload:
     runs-on: ubuntu-20.04
