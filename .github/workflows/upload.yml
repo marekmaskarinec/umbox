@@ -1,0 +1,28 @@
+name: Upload workflow
+on:
+  push:
+    branches:
+      - main
+jobs:
+  upload:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install packages
+      run: sudo apt install -y curl unzip zip nsis rsync
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH_KEY }}
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+    - name: Build and upload
+      run: |
+        cd ..
+        curl https://mrms.cz/dl/up/umbox_portable.zip -O
+        unzip umbox_portable.zip
+        cd umbox
+        ../umbox_portable/umbox update
+        LANG=C.UTF-8 make
+        rsync umbox_portable.zip marek@mrms.cz:www/web/dl/umbox/
+        rsync umbox_install.exe marek@mrms.cz:www/web/dl/umbox/
+        rsync cmd/setup.sh marek@mrms.cz:www/web/dl/umbox/
