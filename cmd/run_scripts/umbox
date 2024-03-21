@@ -2,4 +2,4 @@
 
 DIR=$(dirname $(readlink -f $0))
 
-$DIR/dat/umbox/umka/linux/umka $DIR/dat/umbox.um $@
+$DIR/dat/umbox/umka/umka $DIR/dat/umbox.um $@

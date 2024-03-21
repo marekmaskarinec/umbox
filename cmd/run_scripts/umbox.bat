@@ -8,4 +8,4 @@ for /f "delims=" %%i in ('dir /b "%DIR%dat\umbox"') do (
 	set "PATH=!PATH!;%DIR%dat\umbox\!currentDir!"
 )
 
-"%DIR%dat\umbox\umka\windows\umka.exe" "%DIR%dat\umbox.um" %*
+"%DIR%dat\umbox\umka\umka.exe" "%DIR%dat\umbox.um" %*
