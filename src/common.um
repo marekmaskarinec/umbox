@@ -230,7 +230,7 @@ fn getMeta*(path: str): (Meta, std.Err) {
 		return {}, std.error(1, "file not found", path)
 	}
 	
-	f, err := std.fopen(path, "r")
+	f, err := std.fopen(path, "rb")
 	if err.code != 0 {
 		return {}, err
 	}
