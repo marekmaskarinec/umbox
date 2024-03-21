@@ -38,15 +38,13 @@ fn downloadPreset(box: common.Box): (common.Meta, std.Err) {
 }
 
 fn run*(url: str, argi: int): std.Err {
-	if std.argc() < 2 {
+	if std.argc() < 2 || std.argc() > 3 {
 		fprintf(std.stderr(), "Usage: umbox init [<preset>]\n")
 		return {}
 	}
 	
 	if ls, err := os.listdir("."); len(ls) > 2 {
-		fprintf(std.stderr(), "%v\n", ls)
-		fprintf(std.stderr(), "Refusing to init a box in a non-empty directory\n")
-		return {}
+		return std.error(1, "Refusing to init a box in an non-empty directory")
 	}
 
 	m := common.Meta{
