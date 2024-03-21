@@ -3,10 +3,9 @@ import (
 	"std.um"
 	"common.um"
 	"update.um"
-	"../umbox/io/io.um"
 )
 
-fn run*(url: str, argi: int): std.Err {
+fn run*(argi: int): std.Err {
 	if argi != std.argc() - 1 {
 		fprintf(std.stderr(), "Usage: umbox install <box_name>\n")
 		return {}
@@ -40,5 +39,5 @@ fn run*(url: str, argi: int): std.Err {
 	fprintf(f, "%s", meta.toJSON())
 	std.fclose(f)
 
-	return update.run(url, std.argc())
+	return update.run(std.argc())
 }

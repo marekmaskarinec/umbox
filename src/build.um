@@ -7,7 +7,7 @@ import (
 	"../umbox/tar/tar.um"
 )
 
-fn run*(url: str, argi: int): std.Err {
+fn run*(argi: int): std.Err {
 	if argi != std.argc() {
 		return std.error(1, "Build requires no arguments")
 	}

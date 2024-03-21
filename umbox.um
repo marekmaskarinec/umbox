@@ -1,6 +1,7 @@
 import (
     "std.um"
     
+		"src/common.um"
     "src/build.um"
     "src/init.um"
     "src/install.um"
@@ -31,8 +32,6 @@ fn help() {
 }
 
 fn main() {
-    url := "https://umbox.tophat2d.dev/"
-             
     if std.argc() == 1 {
         help()
         return
@@ -48,27 +47,27 @@ fn main() {
                 return
             }
             
-            url = std.argv(i + 1)
+						common.serverUrl = std.argv(i + 1)
             i += 1
         } else {
             if std.argv(i) == "build" {
-                std.exitif(build.run(url, i + 1))
+                std.exitif(build.run(i + 1))
             } else if std.argv(i) == "init" {
-                std.exitif(init.run(url, i + 1))
+                std.exitif(init.run(i + 1))
             } else if std.argv(i) == "install" {
-                std.exitif(install.run(url, i + 1))
+                std.exitif(install.run(i + 1))
             } else if std.argv(i) == "remove" {
-                std.exitif(remove.run(url, i + 1))
+                std.exitif(remove.run(i + 1))
             } else if std.argv(i) == "run" {
-                std.exitif(run.run(url, i + 1))
+                std.exitif(run.run(i + 1))
             } else if std.argv(i) == "search" {
-                std.exitif(search.run(url, i + 1))
+                std.exitif(search.run(i + 1))
             } else if std.argv(i) == "update" {
-                std.exitif(update.run(url, i + 1))
+                std.exitif(update.run(i + 1))
             } else if std.argv(i) == "register" {
-                std.exitif(register.run(url, i + 1))
+                std.exitif(register.run(i + 1))
             } else if std.argv(i) == "upload" {
-                std.exitif(upload.run(url, i + 1))
+                std.exitif(upload.run(i + 1))
             } else {
                 printf("Unknown command: %s\n", std.argv(i))
                 help()

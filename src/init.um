@@ -37,8 +37,8 @@ fn downloadPreset(box: common.Box): (common.Meta, std.Err) {
 	return m, {}
 }
 
-fn run*(url: str, argi: int): std.Err {
-	if std.argc() < 2 || std.argc() > 3 {
+fn run*(argi: int): std.Err {
+	if std.argc() - argi > 1 {
 		fprintf(std.stderr(), "Usage: umbox init [<preset>]\n")
 		return {}
 	}
@@ -52,10 +52,10 @@ fn run*(url: str, argi: int): std.Err {
 		readme: "README.md"
 	}
 
-	if std.argc() == 3 {
+	if std.argc() - argi == 1 {
 		preset := common.parseDep(std.argv(argi))
 		if !preset.exists() {
-			fprintf(std.stderr(), "Box '%s' doesn't exist\n", preset)
+			fprintf(std.stderr(), "Box '%s' doesn't exist\n", preset.encode())
 			return {}
 		}
 
@@ -73,5 +73,5 @@ fn run*(url: str, argi: int): std.Err {
 	fprintf(f, "%s", m.toJSON())
 	std.fclose(f)
 
-	return update.run(url, std.argc())
+	return update.run(std.argc())
 }

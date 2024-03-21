@@ -7,7 +7,7 @@ import (
 	"../umbox/strings/strings.um"
 )
 
-fn run*(url: str, argi: int): std.Err {
+fn run*(argi: int): std.Err {
 	meta, err := common.getMeta("box.json") 
 	if err.code != 0 {
 		return err

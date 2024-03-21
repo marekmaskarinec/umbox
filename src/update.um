@@ -156,7 +156,7 @@ fn touchDep(dep: str, touched: ^map[str]bool): std.Err {
 	return {}
 }
 
-fn run*(url: str, argi: int): std.Err {
+fn run*(argi: int): std.Err {
 	for argi < std.argc() {
 		v := std.argv(argi)
 

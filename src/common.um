@@ -10,7 +10,7 @@ import (
 	"../umbox/tar/tar.um"
 )
 
-var url*: str = "https://umbox.tophat2d.dev/"
+var serverUrl*: str = "https://umbox.tophat2d.dev/"
 
 type Box* = interface {
 	exists(file: str = "version"): bool
@@ -53,7 +53,7 @@ fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std.Err) {
 }
 
 fn (b: ^HTTPBox) encode*(): str {
-	if b.url != "https://umbox.tophat2d.dev" {
+	if b.url != serverUrl {
 		return sprintf("%s@%s", b.name, b.url)
 	}
 	
@@ -202,7 +202,7 @@ fn parseDep*(dep: str): Box {
 	if !strings.contains(dep, "@") {
 		return HTTPBox{
 			name: dep,
-			url: "https://umbox.tophat2d.dev"
+			url: serverUrl
 		}
 	}
 	

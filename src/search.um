@@ -8,7 +8,7 @@ import (
 	"common.um"
 )
 
-fn run*(url: str, argi: int): std.Err {
+fn run*(argi: int): std.Err {
 	if argi != std.argc() - 1 {
 		fprintf(std.stderr(), "Usage: umbox search <query>\n")
 		return {}
@@ -16,7 +16,7 @@ fn run*(url: str, argi: int): std.Err {
 
 	query := std.argv(argi)
 
-	resp := common.get(url, sprintf("api/search/%s", query))
+	resp := common.get(common.serverUrl, sprintf("api/search/%s", query))
 	if !resp.ok {
 		return std.error(1, resp.msg)
 	}
