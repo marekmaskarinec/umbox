@@ -7,26 +7,28 @@ import (
 	"../umbox/tar/tar.um"
 )
 
-fn run*(url: str, argi: int) {
+fn run*(url: str, argi: int): std.Err {
 	if argi != std.argc() {
-		fprintf(std.stderr(), "Build requires no arguments.\n")
-		return
+		return std.error(1, "Build requires no arguments")
 	}
 
 	meta, err := common.getMeta("box.json") 
-	std.exitif(err)
+	if err.code != 0 {
+		return err
+	}
 	
 	if len(meta.preBuild) > 0 {
 		code := std.system(meta.preBuild)
 
 		if code != 0 {
-			fprintf(std.stderr(), "Pre-build failed with code %d\n", code)
-			return
+			return std.error(code, sprintf("Post-build failed with code %d\n", code))
 		}
 	}
 	
 	t, err := tar.open("box.tar", "w")
-	std.exitif(err)
+	if err.code != 0 {
+		return err
+	}
 	
 	t.addFile("box.json")
 	if len(meta.readme) > 0 {
@@ -44,17 +46,22 @@ fn run*(url: str, argi: int) {
 	}
 	
 	err = t.finalize()
-	std.exitif(err)
+	if err.code != 0 {
+		return err
+	}
 	
 	err = t.close()
-	std.exitif(err)
+	if err.code != 0 {
+		return err
+	}
 	
 	if len(meta.postBuild) > 0 {
 		code := std.system(meta.postBuild)
 
 		if code != 0 {
-			fprintf(std.stderr(), "Post-build failed with code %d\n", code)
-			return
+			return std.error(code, sprintf("Post-build failed with code %d\n", code))
 		}
 	}
+
+	return {}
 }

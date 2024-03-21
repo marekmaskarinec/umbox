@@ -52,23 +52,23 @@ fn main() {
             i += 1
         } else {
             if std.argv(i) == "build" {
-                build.run(url, i + 1)
+                std.exitif(build.run(url, i + 1))
             } else if std.argv(i) == "init" {
-                init.run(url, i + 1)
+                std.exitif(init.run(url, i + 1))
             } else if std.argv(i) == "install" {
-                install.run(url, i + 1)
+                std.exitif(install.run(url, i + 1))
             } else if std.argv(i) == "remove" {
-                remove.run(url, i + 1)
+                std.exitif(remove.run(url, i + 1))
             } else if std.argv(i) == "run" {
-                run.run(url, i + 1)
+                std.exitif(run.run(url, i + 1))
             } else if std.argv(i) == "search" {
-                search.run(url, i + 1)
+                std.exitif(search.run(url, i + 1))
             } else if std.argv(i) == "update" {
-                update.run(url, i + 1)
+                std.exitif(update.run(url, i + 1))
             } else if std.argv(i) == "register" {
-                register.run(url, i + 1)
+                std.exitif(register.run(url, i + 1))
             } else if std.argv(i) == "upload" {
-                upload.run(url, i + 1)
+                std.exitif(upload.run(url, i + 1))
             } else {
                 printf("Unknown command: %s\n", std.argv(i))
                 help()

@@ -45,5 +45,10 @@ fn run*(url: str, argi: int): std.Err {
 	if !resp.ok {
 		return std.error(1, resp.msg)
 	}
+
+	if resp.status != 200 {
+		return std.error(1, sprintf("Request failed with code: %d\n", resp.status))
+	}
+
 	return {}
 }
