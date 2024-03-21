@@ -16,7 +16,7 @@ runs:
       run: |
         cd ${{ inputs.dir }}
         sudo apt install -y curl unzip zip nsis rsync
-        curl https://mrms.cz/dl/up/umbox_portable.zip -O
+        curl https://mrms.cz/dl/umbox/umbox_portable.zip -O
         unzip umbox_portable.zip
     - name: Build
       shell: bash
