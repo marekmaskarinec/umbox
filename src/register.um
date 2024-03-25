@@ -3,7 +3,6 @@ import (
 	"std.um"
 	"common.um"
 	"../umbox/http/http.um"
-	"../umbox/io/io.um"
 )
 
 fn run*(argi: int): std.Err {
@@ -14,7 +13,6 @@ fn run*(argi: int): std.Err {
 	
 	name := std.argv(argi)
 
-	w := io.mkMemory({})
 	resp := common.get(common.serverUrl, sprintf("api/register/%s", name))
 	if !resp.ok {
 		return std.error(1, resp.msg)

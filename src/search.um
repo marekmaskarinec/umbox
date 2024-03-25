@@ -1,7 +1,6 @@
 
 import (
 	"../umbox/http/http.um"
-	"../umbox/io/io.um"
 	"../umbox/json/json.um"
 	"std.um"
 	

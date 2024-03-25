@@ -2,7 +2,6 @@
 import (
 	"std.um"
 	"../umbox/os/os.um"
-	"../umbox/io/io.um"
 	"../umbox/http/http.um"
 	"../umbox/blake2/blake2.um"
 	"../umbox/filepath/filepath.um"

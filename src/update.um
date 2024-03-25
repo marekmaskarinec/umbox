@@ -4,7 +4,6 @@ import (
 	"../umbox/json/json.um"
 	"../umbox/filepath/filepath.um"
 	"../umbox/tar/tar.um"
-	"../umbox/io/io.um"
 	"../umbox/jsonenc/jsonenc.um"
 	"../umbox/strings/strings.um"
 
@@ -181,7 +180,7 @@ fn run*(argi: int): std.Err {
 	versions := map[str]str{}
 	if os.isfile(filepath.join("umbox", "versions.json")) {
 		f := std.fopen(filepath.join("umbox", "versions.json"), "r").item0
-		r := map[str]any(json.parse(str([]char(io.mkFile(f).read()))))
+		r := map[str]any(json.parse(str(std.freadall(f).item0)))
 		std.fclose(f)
 		for k,v in r {
 			versions[k] = str(v)

@@ -6,7 +6,6 @@ import (
         
 	"../umbox/tar/tar.um"
 	"../umbox/filepath/filepath.um"
-	"../umbox/io/io.um"
 	"../umbox/os/os.um"
 )
 

@@ -3,7 +3,6 @@ import (
 	"std.um"
 	"common.um"
 	"update.um"
-	"../umbox/io/io.um"
 )
 
 fn run*(argi: int): std.Err {
