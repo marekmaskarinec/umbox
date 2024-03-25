@@ -10,6 +10,20 @@ import (
 )
 
 var serverUrl*: str = "https://umbox.tophat2d.dev/"
+var debugMode*: bool = false
+
+fn exitif*(e: std.Err) {
+	if e.code == 0 {
+		return
+	}
+
+	if debugMode {
+		std.exitif(e)
+	}
+
+	fprintf(std.stderr(), "UmBox error: %s (code %d)\n", e.msg, e.code)
+	exit(1)
+}
 
 type Box* = interface {
 	exists(file: str = "version"): bool

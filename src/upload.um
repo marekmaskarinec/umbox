@@ -18,13 +18,11 @@ fn run*(argi: int): std.Err {
 	file := std.argv(argi + 1)
 	
 	if !os.isfile(file) {
-		fprintf(std.stderr(), "File not found\n")
-		return {}
+		return std.error(1, "file not found")
 	}
 		   
 	if len(token) != 64 {
-		fprintf(std.stderr(), "Invalid token\n")
-		return {}
+		return std.error(1, "invalid token")
 	}
 	
 	meta, err := common.getMeta("box.json")
