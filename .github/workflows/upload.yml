@@ -24,5 +24,7 @@ jobs:
         ../umbox_portable/umbox update
         LANG=C.UTF-8 make
         rsync umbox_portable.zip marek@mrms.cz:www/web/dl/umbox/
+        rsync umbox_windows.zip marek@mrms.cz:www/web/dl/umbox/
+        rsync umbox_linux.zip marek@mrms.cz:www/web/dl/umbox/
         rsync umbox_install.exe marek@mrms.cz:www/web/dl/umbox/
         rsync cmd/setup.sh marek@mrms.cz:www/web/dl/umbox/
