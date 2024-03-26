@@ -10,19 +10,18 @@ import (
 
 fn run*(argi: int): std.Err {
 	if argi != std.argc() - 2 {
-		fprintf(std.stderr(), "usage: umbox upload <token> <file>\n")
-		return {}
+		return common.error(.cli, "umbox upload <token> <file>")
 	}
 	
 	token := std.argv(argi)
 	file := std.argv(argi + 1)
 	
 	if !os.isfile(file) {
-		return std.error(1, "file not found")
+		return common.error(.fileNotFound, file)
 	}
 		   
 	if len(token) != 64 {
-		return std.error(1, "invalid token")
+		return common.error(.secret)
 	}
 	
 	meta, err := common.getMeta("box.json")
@@ -40,11 +39,11 @@ fn run*(argi: int): std.Err {
 	reqUrl := sprintf("api/package/%s/upload/%s", meta.name, filepath.file(file))
 	resp := common.post(std.freadall(f).item0, common.serverUrl, reqUrl, tokenHashStr)
 	if !resp.ok {
-		return std.error(1, resp.msg)
+		return common.error(.request, resp.msg)
 	}
 
 	if resp.status != 200 {
-		return std.error(1, sprintf("Request failed with code: %d\n", resp.status))
+		return common.error(.request, std.itoa(resp.status))
 	}
 
 	return {}

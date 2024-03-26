@@ -9,6 +9,46 @@ import (
 	"../umbox/tar/tar.um"
 )
 
+type ErrCode* = enum {
+	ok
+	failed
+	cli
+	secret
+	box
+	request
+	json
+	boxNotFound
+	fileNotFound
+	jsonKeyNotFound
+	preBuild
+	postBuild
+	dirNotEmpty
+}
+
+const errStrings = [13]str{
+	"not an error",
+	"failed",
+	"invalid cli arguments",
+	"bad token",
+	"invalid box syntax",
+	"HTTP request failed",
+	"json error",
+	"box not found",
+	"file not found",
+	"json key not found",
+	"pre build failed",
+	"post build failed",
+	"directory not empty"
+}
+
+fn error*(ec: ErrCode, msg: str = ""): std.Err {
+	e := std.error(int(ec), errStrings[int(ec)], "umbox")
+	if msg != "" {
+		e.msg += ": " + msg
+	}
+	return e
+}
+
 var serverUrl*: str = "https://umbox.tophat2d.dev/"
 var debugMode*: bool = false
 
@@ -21,7 +61,7 @@ fn exitif*(e: std.Err) {
 		std.exitif(e)
 	}
 
-	fprintf(std.stderr(), "UmBox error: %s (code %d)\n", e.msg, e.code)
+	fprintf(std.stderr(), "UmBox error (%d): %s\n", e.code, e.msg)
 	exit(1)
 }
 
@@ -55,11 +95,11 @@ fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std.Err) {
 	})
 
 	if !resp.ok {
-		return {}, std.error(1, resp.err)
+		return {}, error(.request, resp.err)
 	}
 
 	if resp.status != 200 {
-		return resp.body, std.error(resp.status, str(resp.body))
+		return resp.body, error(.request, resp.body)
 	}
 
 	return resp.body, {}
@@ -240,7 +280,7 @@ fn parseDep*(dep: str): Box {
 
 fn getMeta*(path: str): (Meta, std.Err) {
 	if !os.isfile(path) {
-		return {}, std.error(1, "file not found", path)
+		return {}, error(.fileNotFound, path)
 	}
 	
 	f, err := std.fopen(path, "rb")
@@ -256,12 +296,12 @@ fn getMeta*(path: str): (Meta, std.Err) {
 	parsed := json.parse(str(d))
 	std.fclose(f)
 	if errs := ^[]json.Error(parsed); errs != null {
-		return {}, std.error(1, sprintf("json parser error: %d %s", errs[0].message, errs[0].lno), path)
+		return {}, error(.json, sprintf("(%s:%d) %s", path, errs[0].message, errs[0].lno))
 	}
 
 	r := ^map[str]any(parsed)
 	if r == null {
-		return {}, std.error(1, "invalid top level json object", path)
+		return {}, error(.json, "invalid top level json object")
 	}
 	   
 	m := Meta{}
@@ -269,43 +309,43 @@ fn getMeta*(path: str): (Meta, std.Err) {
 	if ^str(r["name"]) != null {
 		m.name = str(r["name"])
 	} else {
-		return {}, std.error(1, "missing key 'name'", path)
+		return {}, error(.jsonKeyNotFound, "name")
 	}
 	
 	if ^str(r["version"]) != null {
 		m.version = str(r["version"])
 	} else {
-		return {}, std.error(1, "missing key 'version'", path)
+		return {}, error(.jsonKeyNotFound, "version")
 	}
 	
 	if ^str(r["author"]) != null {
 		m.author = str(r["author"])
 	} else {
-		return {}, std.error(1, "missing key 'author'", path)
+		return {}, error(.jsonKeyNotFound, "author")
 	}
 
 	if ^str(r["license"]) != null {
 		m.license = str(r["license"])
 	} else {
-		return {}, std.error(1, "missing key 'license'", path)
+		return {}, error(.jsonKeyNotFound, "license")
 	}
 
 	if ^str(r["description"]) != null {
 		m.description = str(r["description"])
 	} else {
-		return {}, std.error(1, "missing key 'description'", path)
+		return {}, error(.jsonKeyNotFound, "description")
 	}
 
 	if ^str(r["readme"]) != null {
 		m.readme = str(r["readme"])
 	} else {
-		return {}, std.error(1, "missing key 'readme'", path)
+		return {}, error(.jsonKeyNotFound, "readme")
 	}
 
 	if ^str(r["link"]) != null {
 		m.link = str(r["link"])
 	} else {
-		return {}, std.error(1, "missing key 'link'", path)
+		return {}, error(.jsonKeyNotFound, "link")
 	}
 
 	if ^[]any(r["dependencies"]) != null {
@@ -313,17 +353,17 @@ fn getMeta*(path: str): (Meta, std.Err) {
 		for i, v in []any(r["dependencies"]) {
 			m.dependencies[i] = parseDep(str(v))
 			if !valid(m.dependencies[i]) {
-				return {}, std.error(1, sprintf("malformed dependency %s", str(v)), path)
+				return {}, error(.box, str(v))
 			}
 		}
 	} else {
-		return {}, std.error(1, "missing key 'dependencies'", path)
+		return {}, error(.jsonKeyNotFound, "dependencies")
 	}
 
 	if ^[]any(r["include"]) != null {
 		m.include = []str([]any(r["include"]))
 	} else {
-		return {}, std.error(1, "missing key 'include'", path)
+		return {}, error(.jsonKeyNotFound, "include")
 	}
 
 	if ^str(r["run"]) != null {

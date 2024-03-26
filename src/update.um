@@ -28,7 +28,7 @@ fn copyFile(p1, p2: str) {
 
 fn fetchDep(dep: common.Box, versions: ^map[str]str): std.Err {
 	if !dep.exists() {
-		return std.error(255, "package not found")
+		return common.error(.boxNotFound, dep.encode())
 	}
 	
 	os.mkdirp(filepath.join("umbox", dep.getName()))
@@ -222,12 +222,18 @@ fn run*(argi: int): std.Err {
 
 		if !touched[d] {
 			fprintf(std.stderr(), "Removing %s...\n", d)
-			os.walk(filepath.join("umbox", d), fn(path: str) |d| {
+			var err: std.Err
+			errp := &err
+			os.walk(filepath.join("umbox", d), fn(path: str) |d, errp| {
 				err := os.remove(path)
 				if err.code != 0 {
-					fprintf(std.stderr(), "Error removing %s: %s\n", path, err.msg)
+					errp ^= err
 				}
 			}, { skipLinks: true })
+
+			if err.code != 0 {
+				return err
+			}
 			
 			os.remove(filepath.join("umbox", d))
 		}

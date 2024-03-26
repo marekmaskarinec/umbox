@@ -9,7 +9,7 @@ import (
 
 fn run*(argi: int): std.Err {
 	if argi != std.argc() {
-		return std.error(1, "Build requires no arguments")
+		return common.error(.cli)
 	}
 
 	meta, err := common.getMeta("box.json") 
@@ -21,7 +21,7 @@ fn run*(argi: int): std.Err {
 		code := std.system(meta.preBuild)
 
 		if code != 0 {
-			return std.error(code, sprintf("Post-build failed with code %d\n", code))
+			return common.error(.preBuild, std.itoa(code))
 		}
 	}
 	
@@ -59,7 +59,7 @@ fn run*(argi: int): std.Err {
 		code := std.system(meta.postBuild)
 
 		if code != 0 {
-			return std.error(code, sprintf("Post-build failed with code %d\n", code))
+			return common.error(.postBuild, std.itoa(code))
 		}
 	}
 

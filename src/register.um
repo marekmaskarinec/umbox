@@ -7,15 +7,14 @@ import (
 
 fn run*(argi: int): std.Err {
 	if argi != std.argc() - 1 {
-		fprintf(std.stderr(), "Usage: umbox register <query>\n")
-		return {}
+		return common.error(.cli, "umbox register <query>")
 	}
 	
 	name := std.argv(argi)
 
 	resp := common.get(common.serverUrl, sprintf("api/register/%s", name))
 	if !resp.ok {
-		return std.error(1, resp.msg)
+		return common.error(.request, resp.msg)
 	}
      
 	printf("%s\n", str(resp.data))

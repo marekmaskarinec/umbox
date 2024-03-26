@@ -7,8 +7,7 @@ import (
 
 fn run*(argi: int): std.Err {
 	if argi != std.argc() - 1 {
-		fprintf(std.stderr(), "Usage: umbox install <box_name>\n")
-		return {}
+		return common.error(.cli, "umbox install <box_name>")
 	}
 	
 	box := common.parseDep(std.argv(argi))
@@ -19,8 +18,7 @@ fn run*(argi: int): std.Err {
 	}
 
 	if !box.exists() {
-		fprintf(std.stderr(), "Box '%s' does not exist.\n", box.getName())
-		return {}
+		return common.error(.boxNotFound, box.encode())
 	}
 
 	exists := false

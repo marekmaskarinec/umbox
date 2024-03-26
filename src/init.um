@@ -11,7 +11,7 @@ import (
 
 fn downloadPreset(box: common.Box): (common.Meta, std.Err) {
 	if !box.exists("init.tar") {
-		return {}, std.error(254, sprintf("box '%s' doesn't have an init preset", box.getName()))
+		return {}, common.error(.fileNotFound, "init.tar")
 	}
 
 	dat, err := box.download("init.tar")
@@ -38,12 +38,11 @@ fn downloadPreset(box: common.Box): (common.Meta, std.Err) {
 
 fn run*(argi: int): std.Err {
 	if std.argc() - argi > 1 {
-		fprintf(std.stderr(), "Usage: umbox init [<preset>]\n")
-		return {}
+		return common.error(.cli, "umbox init [<preset>]")
 	}
 	
 	if ls, err := os.listdir("."); len(ls) > 2 {
-		return std.error(1, "Refusing to init a box in an non-empty directory")
+		return common.error(.dirNotEmpty)
 	}
 
 	m := common.Meta{
