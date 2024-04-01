@@ -121,7 +121,7 @@ type FileBox* = struct {
 
 fn (b: ^FileBox) open(): std.Err {
 	var err: std.Err
-	b.handle, err = tar.open(b.path, "r")
+	b.handle, err = tar.open(b.path, "rb")
 
 	return err
 }
