@@ -296,7 +296,7 @@ fn getMeta*(path: str): (Meta, std.Err) {
 	parsed := json.parse(str(d))
 	std.fclose(f)
 	if errs := ^[]json.Error(parsed); errs != null {
-		return {}, error(.json, sprintf("(%s:%d) %s", path, errs[0].message, errs[0].lno))
+		return {}, error(.json, sprintf("(%s:%d) %s", path, errs[0].lno, errs[0].message))
 	}
 
 	r := ^map[str]any(parsed)
