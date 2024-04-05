@@ -18,10 +18,10 @@ jobs:
     - name: Build and upload
       run: |
         cd ..
-        curl https://mrms.cz/dl/up/umbox_portable.zip -O
-        unzip umbox_portable.zip
+        curl https://mrms.cz/dl/umbox/umbox_linux_v12.zip -o umbox_linux.zip
+        unzip umbox_linux.zip
         cd umbox
-        ../umbox_portable/umbox update
+        ../umbox_linux/umbox update
         LANG=C.UTF-8 make
         rsync umbox_portable.zip marek@mrms.cz:www/web/dl/umbox/
         rsync umbox_windows.zip marek@mrms.cz:www/web/dl/umbox/
