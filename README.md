@@ -12,7 +12,7 @@ syntax.
 
 * [Web UI](https://umbox.tophat2d.dev)
 * [Documentation](https://umbox.tophat2d.dev/docs)
-* [Install instruction](https://umbox.tophad2d.dev/docs/user/01-installation.md)
+* [Install instruction](https://umbox.tophat2d.dev/docs/user/01-installation.md)
 * [Package list](https://umbox.tophat2d.dev/all)
 * [Downloads](https://umbox.tophat2d.dev/static/dl.md)
 
