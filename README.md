@@ -1,5 +1,7 @@
 # UmBox
 
+![](etc/cat.png)
+
 UmBox is a package manager for Umka programs and libraries. It allows you to
 easily install and update libraries, including their dependencies. UmBox offers
 a CLI tool (hosted in this repo) and a Web UI (hosted in the
