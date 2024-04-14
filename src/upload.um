@@ -8,42 +8,42 @@ import (
 	"common.um"
 )
 
-fn run*(argi: int): std.Err {
-	if argi != std.argc() - 2 {
-		return common.error(.cli, "umbox upload <token> <file>")
+fn run*(argi: int): std::Err {
+	if argi != std::argc() - 2 {
+		return common::error(.cli, "umbox upload <token> <file>")
 	}
 	
-	token := std.argv(argi)
-	file := std.argv(argi + 1)
+	token := std::argv(argi)
+	file := std::argv(argi + 1)
 	
-	if !os.isfile(file) {
-		return common.error(.fileNotFound, file)
+	if !os::isfile(file) {
+		return common::error(.fileNotFound, file)
 	}
 		   
 	if len(token) != 64 {
-		return common.error(.secret)
+		return common::error(.secret)
 	}
 	
-	meta, err := common.getMeta("box.json")
+	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return err
 	}
 
-	tokenHash := blake2.blake2b([]uint8([]char(token)))
+	tokenHash := blake2::blake2b([]uint8([]char(token)))
 	tokenHashStr := ""
 	for i,b in tokenHash {
 		tokenHashStr += sprintf("%02x", b)
 	}
-	f := std.fopen(file, "rb").item0
+	f := std::fopen(file, "rb").item0
 	
-	reqUrl := sprintf("api/package/%s/upload/%s", meta.name, filepath.file(file))
-	resp := common.post(std.freadall(f).item0, common.serverUrl, reqUrl, tokenHashStr)
+	reqUrl := sprintf("api/package/%s/upload/%s", meta.name, filepath::file(file))
+	resp := common::post(std::freadall(f).item0, common::serverUrl, reqUrl, tokenHashStr)
 	if !resp.ok {
-		return common.error(.request, resp.msg)
+		return common::error(.request, resp.msg)
 	}
 
 	if resp.status != 200 {
-		return common.error(.request, std.itoa(resp.status))
+		return common::error(.request, std::itoa(resp.status))
 	}
 
 	return {}

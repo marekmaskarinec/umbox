@@ -33,46 +33,46 @@ fn help() {
 }
 
 fn main() {
-    if std.argc() == 1 {
+    if std::argc() == 1 {
         help()
         return
     }
 
-    for i:=1; i < std.argc(); i++ {
-        if std.argv(i) == "-h" || std.argv(i) == "--help" {
+    for i:=1; i < std::argc(); i++ {
+        if std::argv(i) == "-h" || std::argv(i) == "--help" {
             help()
             return
-				} else if std.argv(i) == "-d" {
-					common.debugMode = true
-        } else if std.argv(i) == "-u" || std.argv(i) == "--url" {
-            if i == std.argc() - 1 {
+				} else if std::argv(i) == "-d" {
+					common::debugMode = true
+        } else if std::argv(i) == "-u" || std::argv(i) == "--url" {
+            if i == std::argc() - 1 {
                 printf("--url requires an argument")
                 return
             }
             
-						common.serverUrl = std.argv(i + 1)
+						common::serverUrl = std::argv(i + 1)
             i += 1
         } else {
-            if std.argv(i) == "build" {
-                common.exitif(build.run(i + 1))
-            } else if std.argv(i) == "init" {
-                common.exitif(init.run(i + 1))
-            } else if std.argv(i) == "install" {
-                common.exitif(install.run(i + 1))
-            } else if std.argv(i) == "remove" {
-                common.exitif(remove.run(i + 1))
-            } else if std.argv(i) == "run" {
-                common.exitif(run.run(i + 1))
-            } else if std.argv(i) == "search" {
-                common.exitif(search.run(i + 1))
-            } else if std.argv(i) == "update" {
-                common.exitif(update.run(i + 1))
-            } else if std.argv(i) == "register" {
-                common.exitif(register.run(i + 1))
-            } else if std.argv(i) == "upload" {
-                common.exitif(upload.run(i + 1))
+            if std::argv(i) == "build" {
+                common::exitif(build::run(i + 1))
+            } else if std::argv(i) == "init" {
+                common::exitif(init::run(i + 1))
+            } else if std::argv(i) == "install" {
+                common::exitif(install::run(i + 1))
+            } else if std::argv(i) == "remove" {
+                common::exitif(remove::run(i + 1))
+            } else if std::argv(i) == "run" {
+                common::exitif(run::run(i + 1))
+            } else if std::argv(i) == "search" {
+                common::exitif(search::run(i + 1))
+            } else if std::argv(i) == "update" {
+                common::exitif(update::run(i + 1))
+            } else if std::argv(i) == "register" {
+                common::exitif(register::run(i + 1))
+            } else if std::argv(i) == "upload" {
+                common::exitif(upload::run(i + 1))
             } else {
-                printf("Unknown command: %s\n", std.argv(i))
+                printf("Unknown command: %s\n", std::argv(i))
                 help()
                 return
             }

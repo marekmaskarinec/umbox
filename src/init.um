@@ -9,9 +9,9 @@ import (
 	"../umbox/os/os.um"
 )
 
-fn downloadPreset(box: common.Box): (common.Meta, std.Err) {
+fn downloadPreset(box: common::Box): (common::Meta, std::Err) {
 	if !box.exists("init.tar") {
-		return {}, common.error(.fileNotFound, "init.tar")
+		return {}, common::error(.fileNotFound, "init.tar")
 	}
 
 	dat, err := box.download("init.tar")
@@ -19,7 +19,7 @@ fn downloadPreset(box: common.Box): (common.Meta, std.Err) {
 		return {}, err
 	}
 
-	tf, err := tar.openBytes([]uint8(dat))
+	tf, err := tar::openBytes([]uint8(dat))
 	if err.code != 0 {
 		return {}, err
 	}
@@ -29,47 +29,47 @@ fn downloadPreset(box: common.Box): (common.Meta, std.Err) {
 		return {}, err
 	}
 
-	m, err := common.getMeta("box.json")
+	m, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return m, err
 	}
 	return m, {}
 }
 
-fn run*(argi: int): std.Err {
-	if std.argc() - argi > 1 {
-		return common.error(.cli, "umbox init [<preset>]")
+fn run*(argi: int): std::Err {
+	if std::argc() - argi > 1 {
+		return common::error(.cli, "umbox init [<preset>]")
 	}
 	
-	if ls, err := os.listdir("."); len(ls) > 2 {
-		return common.error(.dirNotEmpty)
+	if ls, err := os::listdir("."); len(ls) > 2 {
+		return common::error(.dirNotEmpty)
 	}
 
-	m := common.Meta{
+	m := common::Meta{
 		version: "v0.1.0",
 		readme: "README.md"
 	}
 
-	if std.argc() - argi == 1 {
-		preset := common.parseDep(std.argv(argi))
+	if std::argc() - argi == 1 {
+		preset := common::parseDep(std::argv(argi))
 		if !preset.exists() {
-			fprintf(std.stderr(), "Box '%s' doesn't exist\n", preset.encode())
+			fprintf(std::stderr(), "Box '%s' doesn't exist\n", preset.encode())
 			return {}
 		}
 
-		var err: std.Err
+		var err: std::Err
 		m, err = downloadPreset(preset)
 		if err.code != 0 {
 			return err
 		}
 	}
 
-	name, err := os.getCwd()
-	m.name = filepath.file(name)
+	name, err := os::getCwd()
+	m.name = filepath::file(name)
 
-	f := std.fopen("box.json", "w").item0
+	f := std::fopen("box.json", "w").item0
 	fprintf(f, "%s", m.toJSON())
-	std.fclose(f)
+	std::fclose(f)
 
-	return update.run(std.argc())
+	return update::run(std::argc())
 }

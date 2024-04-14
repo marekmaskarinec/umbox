@@ -11,45 +11,45 @@ import (
 	"common.um"
 )
 
-fn fetchDeps(deps: []common.Box, versions: ^map[str]str): std.Err
+fn fetchDeps(deps: []common::Box, versions: ^map[str]str): std::Err
 
 var (
 	copyDeps: bool = false
 )
 
 fn copyFile(p1, p2: str) {
-	f1, err := std.fopen(p1, "rb")
-	d, err := std.freadall(f1)
-	f2, err := std.fopen(p2, "wb")
-	std.fwrite(f2, d)
-	std.fclose(f1)
-	std.fclose(f2)
+	f1, err := std::fopen(p1, "rb")
+	d, err := std::freadall(f1)
+	f2, err := std::fopen(p2, "wb")
+	std::fwrite(f2, d)
+	std::fclose(f1)
+	std::fclose(f2)
 }
 
-fn fetchDep(dep: common.Box, versions: ^map[str]str): std.Err {
+fn fetchDep(dep: common::Box, versions: ^map[str]str): std::Err {
 	if !dep.exists() {
-		return common.error(.boxNotFound, dep.encode())
+		return common::error(.boxNotFound, dep.encode())
 	}
 	
-	os.mkdirp(filepath.join("umbox", dep.getName()))
+	os::mkdirp(filepath::join("umbox", dep.getName()))
 
 	// fetch and extract box.tar
 	d, err := dep.download("box.tar")
 	if err.code != 0 {
 		return err
 	}
-	tf, err := tar.openBytes([]uint8(d))
+	tf, err := tar::openBytes([]uint8(d))
 	if err.code != 0 {
 		return err
 	}
 	
-	err = tf.extract(filepath.join("umbox", dep.getName(), ""))
+	err = tf.extract(filepath::join("umbox", dep.getName(), ""))
 	if err.code != 0 {
 		return err
 	}
 	
 	// Fetch dependencies
-	meta, err := common.getMeta(filepath.join("umbox", dep.getName(), "box.json"))
+	meta, err := common::getMeta(filepath::join("umbox", dep.getName(), "box.json"))
 	if err.code != 0 {
 		return err
 	}
@@ -60,22 +60,22 @@ fn fetchDep(dep: common.Box, versions: ^map[str]str): std.Err {
 	}
 
 	// Create symlinks for dependencies
-	os.mkdirp(filepath.join("umbox", dep.getName(), "umbox"))
+	os::mkdirp(filepath::join("umbox", dep.getName(), "umbox"))
 	for i,d in meta.dependencies {
 		if copyDeps {
-			os.walk(filepath.join("umbox", d.getName()), |dep, d| {
-				file2 := filepath.join(
+			os::walk(filepath::join("umbox", d.getName()), |dep, d| {
+				file2 := filepath::join(
 					"umbox", dep.getName(), "umbox", d.getName(),
-					strings.trimprefix(file, filepath.join("umbox", d.getName()))
+					strings::trimprefix(file, filepath::join("umbox", d.getName()))
 				)
 
-				os.mkdirp(filepath.dir(file2))
+				os::mkdirp(filepath::dir(file2))
 				copyFile(file, file2)
 			}, { excludeDirs: true })
 		} else {
-			err := os.link(filepath.join("..", "..", d.getName()), filepath.join("umbox", dep.getName(), "umbox", d.getName()))
-			if err.code != 0 && os.getPlatform() == os.Platform.windows {
-				std.system("mklink /j " + filepath.join("umbox", dep.getName(), "umbox", d.getName()) + " " + filepath.join("umbox", d.getName()))
+			err := os::link(filepath::join("..", "..", d.getName()), filepath::join("umbox", dep.getName(), "umbox", d.getName()))
+			if err.code != 0 && os::getPlatform() == os::Platform.windows {
+				std::system("mklink /j " + filepath::join("umbox", dep.getName(), "umbox", d.getName()) + " " + filepath::join("umbox", d.getName()))
 			}
 		}
 	}
@@ -91,11 +91,11 @@ fn fetchDep(dep: common.Box, versions: ^map[str]str): std.Err {
 	return {}
 }
 
-fn fetchDeps(deps: []common.Box, versions: ^map[str]str): std.Err {
+fn fetchDeps(deps: []common::Box, versions: ^map[str]str): std::Err {
 	for i,dep in deps {
 		// If the dependency doesn't exist, fetch it.
-		if !os.isdir(filepath.join("umbox", dep.getName())) {
-			fprintf(std.stderr(), "Downloading %s...\n", dep.getName())
+		if !os::isdir(filepath::join("umbox", dep.getName())) {
+			fprintf(std::stderr(), "Downloading %s...\n", dep.getName())
 			err := fetchDep(dep, versions)
 			if err.code != 0 {
 				return err
@@ -105,7 +105,7 @@ fn fetchDeps(deps: []common.Box, versions: ^map[str]str): std.Err {
 
 		// If the dependency doesn't have a known version, fetch it.
 		if !validkey(versions^, dep.getName()) {
-			fprintf(std.stderr(), "Downloading %s...\n", dep.getName())
+			fprintf(std::stderr(), "Downloading %s...\n", dep.getName())
 			err := fetchDep(dep, versions)
 			if err.code != 0 {
 				return err
@@ -120,7 +120,7 @@ fn fetchDeps(deps: []common.Box, versions: ^map[str]str): std.Err {
 				return err
 			}
 			if versions[dep.getName()] != str([]char(d)) {
-				fprintf(std.stderr(), "Updating %s...\n", dep.getName())
+				fprintf(std::stderr(), "Updating %s...\n", dep.getName())
 				err = fetchDep(dep, versions)
 				if err.code != 0 {
 					return err
@@ -133,14 +133,14 @@ fn fetchDeps(deps: []common.Box, versions: ^map[str]str): std.Err {
 	return {}
 }
 
-fn touchDep(dep: str, touched: ^map[str]bool): std.Err {
+fn touchDep(dep: str, touched: ^map[str]bool): std::Err {
 	if validkey(touched^, dep) {
 		return {}
 	}
 
 	touched[dep] = true
 
-	meta, err := common.getMeta(filepath.join("umbox", dep, "box.json"))
+	meta, err := common::getMeta(filepath::join("umbox", dep, "box.json"))
 	if err.code != 0 {
 		return err
 	}
@@ -155,9 +155,9 @@ fn touchDep(dep: str, touched: ^map[str]bool): std.Err {
 	return {}
 }
 
-fn run*(argi: int): std.Err {
-	for argi < std.argc() {
-		v := std.argv(argi)
+fn run*(argi: int): std::Err {
+	for argi < std::argc() {
+		v := std::argv(argi)
 
 		if v == "-c" {
 			copyDeps = true
@@ -170,18 +170,18 @@ fn run*(argi: int): std.Err {
 		argi++
 	}
 
-	meta, err := common.getMeta("box.json")
+	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return err
 	}
 	
-	os.mkdirp("umbox")
+	os::mkdirp("umbox")
 
 	versions := map[str]str{}
-	if os.isfile(filepath.join("umbox", "versions.json")) {
-		f := std.fopen(filepath.join("umbox", "versions.json"), "r").item0
-		r := map[str]any(json.parse(str(std.freadall(f).item0)))
-		std.fclose(f)
+	if os::isfile(filepath::join("umbox", "versions.json")) {
+		f := std::fopen(filepath::join("umbox", "versions.json"), "r").item0
+		r := map[str]any(json::parse(str(std::freadall(f).item0)))
+		std::fclose(f)
 		for k,v in r {
 			versions[k] = str(v)
 		}
@@ -200,7 +200,7 @@ fn run*(argi: int): std.Err {
 		}
 	}
 		
-	enc := jsonenc.mk(true)
+	enc := jsonenc::mk(true)
 	enc.startObject()
 	for k,v in versions {
 		if touched[k] {
@@ -210,22 +210,22 @@ fn run*(argi: int): std.Err {
 	}
 	enc.endObject()
 
-	f := std.fopen(filepath.join("umbox", "versions.json"), "w").item0
+	f := std::fopen(filepath::join("umbox", "versions.json"), "w").item0
 	fprintf(f, "%s", enc.toStr())
-	std.fclose(f)
+	std::fclose(f)
 	
-	ls, _ := os.listdir("umbox")
+	ls, _ := os::listdir("umbox")
 	for i,d in ls {
 		if d == "versions.json" || d == "." || d == ".." {
 			continue
 		}
 
 		if !touched[d] {
-			fprintf(std.stderr(), "Removing %s...\n", d)
-			var err: std.Err
+			fprintf(std::stderr(), "Removing %s...\n", d)
+			var err: std::Err
 			errp := &err
-			os.walk(filepath.join("umbox", d), fn(path: str) |d, errp| {
-				err := os.remove(path)
+			os::walk(filepath::join("umbox", d), fn(path: str) |d, errp| {
+				err := os::remove(path)
 				if err.code != 0 {
 					errp ^= err
 				}
@@ -235,7 +235,7 @@ fn run*(argi: int): std.Err {
 				return err
 			}
 			
-			os.remove(filepath.join("umbox", d))
+			os::remove(filepath::join("umbox", d))
 		}
 	}
 

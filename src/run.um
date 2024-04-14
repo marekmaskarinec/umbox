@@ -7,21 +7,21 @@ import (
 	"../umbox/strings/strings.um"
 )
 
-fn run*(argi: int): std.Err {
-	meta, err := common.getMeta("box.json") 
+fn run*(argi: int): std::Err {
+	meta, err := common::getMeta("box.json") 
 	if err.code != 0 {
 		return err
 	}
 	
 	args := ""
-	for i := argi; i < std.argc(); i++ {
-		args += " " + std.argv(i)
+	for i := argi; i < std::argc(); i++ {
+		args += " " + std::argv(i)
 	}
 	      
 	cmd := meta.run
 	pathSep := ""
 	
-	if os.getPlatform() == os.Platform.posix {
+	if os::getPlatform() == os::Platform.posix {
 		if len(meta.runPosix) != 0 {
 			cmd = meta.runPosix
 		}
@@ -29,7 +29,7 @@ fn run*(argi: int): std.Err {
 		pathSep = ":"
 	}
 	     
-	if os.getPlatform() == os.Platform.windows {
+	if os::getPlatform() == os::Platform.windows {
 		if len(meta.runWindows) != 0 {
 			cmd = meta.runWindows
 		}
@@ -37,22 +37,22 @@ fn run*(argi: int): std.Err {
 		pathSep = ";"
 	}
 	
-	path := std.getenv("PATH")
+	path := std::getenv("PATH")
 	for i,d in meta.dependencies {
-		cwd, err := os.getCwd()
-		path = filepath.join(cwd, "umbox", d.getName()) + pathSep + path
+		cwd, err := os::getCwd()
+		path = filepath::join(cwd, "umbox", d.getName()) + pathSep + path
 	}
-	os.setEnv("PATH", path)
+	os::setEnv("PATH", path)
 
 	if len(cmd) > 0 {
-		cmdSp := strings.split(cmd, " ")
-		cmdSp[0] = filepath.fromslash(cmdSp[0])
-		cmd = strings.join(cmdSp, " ")
+		cmdSp := strings::split(cmd, " ")
+		cmdSp[0] = filepath::fromslash(cmdSp[0])
+		cmd = strings::join(cmdSp, " ")
 
-		std.system(cmd)
+		std::system(cmd)
 	}
 
-	std.system(args)
+	std::system(args)
 
 	return {}
 }

@@ -7,25 +7,25 @@ import (
 	"../umbox/tar/tar.um"
 )
 
-fn run*(argi: int): std.Err {
-	if argi != std.argc() {
-		return common.error(.cli)
+fn run*(argi: int): std::Err {
+	if argi != std::argc() {
+		return common::error(.cli)
 	}
 
-	meta, err := common.getMeta("box.json") 
+	meta, err := common::getMeta("box.json") 
 	if err.code != 0 {
 		return err
 	}
 	
 	if len(meta.preBuild) > 0 {
-		code := std.system(meta.preBuild)
+		code := std::system(meta.preBuild)
 
 		if code != 0 {
-			return common.error(.preBuild, std.itoa(code))
+			return common::error(.preBuild, std::itoa(code))
 		}
 	}
 	
-	t, err := tar.open("box.tar", "w")
+	t, err := tar::open("box.tar", "w")
 	if err.code != 0 {
 		return err
 	}
@@ -36,10 +36,10 @@ fn run*(argi: int): std.Err {
 	}
 	
 	for i,f in meta.include {
-		if os.isfile(f) {
+		if os::isfile(f) {
 			t.addFile(f)
 		} else {
-			os.walk(f, fn(p: str) |t| {
+			os::walk(f, fn(p: str) |t| {
 				t.addFile(p)
 			})
 		}
@@ -56,10 +56,10 @@ fn run*(argi: int): std.Err {
 	}
 	
 	if len(meta.postBuild) > 0 {
-		code := std.system(meta.postBuild)
+		code := std::system(meta.postBuild)
 
 		if code != 0 {
-			return common.error(.postBuild, std.itoa(code))
+			return common::error(.postBuild, std::itoa(code))
 		}
 	}
 

@@ -5,20 +5,20 @@ import (
 	"update.um"
 )
 
-fn run*(argi: int): std.Err {
-	if argi != std.argc() - 1 {
-		return common.error(.cli, "umbox install <box_name>")
+fn run*(argi: int): std::Err {
+	if argi != std::argc() - 1 {
+		return common::error(.cli, "umbox install <box_name>")
 	}
 	
-	box := common.parseDep(std.argv(argi))
+	box := common::parseDep(std::argv(argi))
 
-	meta, err := common.getMeta("box.json") 
+	meta, err := common::getMeta("box.json") 
 	if err.code != 0 {
 		return err
 	}
 
 	if !box.exists() {
-		return common.error(.boxNotFound, box.encode())
+		return common::error(.boxNotFound, box.encode())
 	}
 
 	exists := false
@@ -33,9 +33,9 @@ fn run*(argi: int): std.Err {
 		meta.dependencies = append(meta.dependencies, box)
 	}
 
-	f := std.fopen("box.json", "w").item0
+	f := std::fopen("box.json", "w").item0
 	fprintf(f, "%s", meta.toJSON())
-	std.fclose(f)
+	std::fclose(f)
 
-	return update.run(std.argc())
+	return update::run(std::argc())
 }

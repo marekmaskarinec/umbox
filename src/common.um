@@ -41,8 +41,8 @@ const errStrings = [13]str{
 	"directory not empty"
 }
 
-fn error*(ec: ErrCode, msg: str = ""): std.Err {
-	e := std.error(int(ec), errStrings[int(ec)], "umbox")
+fn error*(ec: ErrCode, msg: str = ""): std::Err {
+	e := std::error(int(ec), errStrings[int(ec)], "umbox")
 	if msg != "" {
 		e.msg += ": " + msg
 	}
@@ -52,22 +52,22 @@ fn error*(ec: ErrCode, msg: str = ""): std.Err {
 var serverUrl*: str = "https://umbox.tophat2d.dev/"
 var debugMode*: bool = false
 
-fn exitif*(e: std.Err) {
+fn exitif*(e: std::Err) {
 	if e.code == 0 {
 		return
 	}
 
 	if debugMode {
-		std.exitif(e)
+		std::exitif(e)
 	}
 
-	fprintf(std.stderr(), "UmBox error (%d): %s\n", e.code, e.msg)
+	fprintf(std::stderr(), "UmBox error (%d): %s\n", e.code, e.msg)
 	exit(1)
 }
 
 type Box* = interface {
 	exists(file: str = "version"): bool
-	download(file: str = "box.tar"): ([]char, std.Err)
+	download(file: str = "box.tar"): ([]char, std::Err)
 	encode(): str
 	getName(): str
 }
@@ -82,15 +82,15 @@ fn (b: ^HTTPBox) getName*(): str {
 }
 
 fn (b: ^HTTPBox) exists*(file: str = "version"): bool {
-	resp := http.get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
+	resp := http::get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
 		userAgent: "umbox-cli"
 	})
 
 	return resp.ok && resp.status == 200
 }
 
-fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std.Err) {
-	resp := http.get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
+fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std::Err) {
+	resp := http::get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
 		userAgent: "umbox-cli"
 	})
 
@@ -116,12 +116,12 @@ fn (b: ^HTTPBox) encode*(): str {
 type FileBox* = struct {
 	name: str
 	path: str
-	handle: tar.Tar
+	handle: tar::Tar
 }
 
-fn (b: ^FileBox) open(): std.Err {
-	var err: std.Err
-	b.handle, err = tar.open(b.path, "rb")
+fn (b: ^FileBox) open(): std::Err {
+	var err: std::Err
+	b.handle, err = tar::open(b.path, "rb")
 
 	return err
 }
@@ -132,7 +132,7 @@ fn (b: ^FileBox) getName*(): str {
 
 fn (b: ^FileBox) exists*(file: str = "version"): bool {
 	if file == "version" {
-		return os.isfile(b.path)
+		return os::isfile(b.path)
 	}
 
 	if b.handle._ == null {
@@ -145,28 +145,28 @@ fn (b: ^FileBox) exists*(file: str = "version"): bool {
 	return err.code == 0
 }
 
-fn (b: ^FileBox) download*(file: str = "box.tar"): ([]char, std.Err) {
+fn (b: ^FileBox) download*(file: str = "box.tar"): ([]char, std::Err) {
 	if file == "box.tar" {
-		f, err := std.fopen(b.path, "rb")
+		f, err := std::fopen(b.path, "rb")
 		if err.code != 0 {
 			return {}, err
 		}
-		d, err := std.freadall(f)
+		d, err := std::freadall(f)
 		if err.code != 0 {
 			return {}, err
 		}
-		std.fclose(f)
+		std::fclose(f)
 
 		return d, {}
 	}
 	
 	if file == "version" {
-		sb, err := os.stat(b.path)
+		sb, err := os::stat(b.path)
 		if err.code != 0 {
 			return {}, err
 		}
 		
-		return []char(std.itoa(sb.mtime)), {}
+		return []char(std::itoa(sb.mtime)), {}
 	}
 
 	if b.handle._ == null {
@@ -205,7 +205,7 @@ type Meta* = struct {
 }
 
 fn (m: ^Meta) toJSON*(): str {
-	enc := jsonenc.mk()
+	enc := jsonenc::mk()
 
 	enc.startObject()
 		enc.putKey("name"); enc.putVal(m.name)
@@ -252,50 +252,50 @@ fn (m: ^Meta) toJSON*(): str {
 }
 
 fn parseDep*(dep: str): Box {
-	if !strings.contains(dep, "@") {
+	if !strings::contains(dep, "@") {
 		return HTTPBox{
 			name: dep,
 			url: serverUrl
 		}
 	}
 	
-	sp := strings.split(dep, "@")
+	sp := strings::split(dep, "@")
 	name := sp[0]
 	source := sp[1]
 	
-	if strings.has_prefix(source, "http://") || strings.has_prefix(source, "https://") {
+	if strings::has_prefix(source, "http://") || strings::has_prefix(source, "https://") {
 		return HTTPBox{
 			name: name,
 			url: source
 		}
-	} else if strings.has_prefix(source, "file://") {
+	} else if strings::has_prefix(source, "file://") {
 		return FileBox{
 			name: name,
-			path: strings.trimprefix(source, "file://")
+			path: strings::trimprefix(source, "file://")
 		}
 	}
 		
 	return null
 }
 
-fn getMeta*(path: str): (Meta, std.Err) {
-	if !os.isfile(path) {
+fn getMeta*(path: str): (Meta, std::Err) {
+	if !os::isfile(path) {
 		return {}, error(.fileNotFound, path)
 	}
 	
-	f, err := std.fopen(path, "rb")
+	f, err := std::fopen(path, "rb")
 	if err.code != 0 {
 		return {}, err
 	}
 
-	d, err := std.freadall(f)
+	d, err := std::freadall(f)
 	if err.code != 0 {
 		return {}, err
 	}
 
-	parsed := json.parse(str(d))
-	std.fclose(f)
-	if errs := ^[]json.Error(parsed); errs != null {
+	parsed := json::parse(str(d))
+	std::fclose(f)
+	if errs := ^[]json::Error(parsed); errs != null {
 		return {}, error(.json, sprintf("(%s:%d) %s", path, errs[0].lno, errs[0].message))
 	}
 
@@ -396,7 +396,7 @@ type ApiResp* = struct {
 	msg: str
 }
 
-fn parseResp(resp: http.Response): ApiResp {
+fn parseResp(resp: http::Response): ApiResp {
 	if !resp.ok {
 		return {
 			ok: false,
@@ -408,8 +408,8 @@ fn parseResp(resp: http.Response): ApiResp {
 	out := ApiResp{}
 	out.status = resp.status
 	
-	payload := json.parse(str(resp.body))
-	if errs := ^[]json.Error(payload); errs != null {
+	payload := json::parse(str(resp.body))
+	if errs := ^[]json::Error(payload); errs != null {
 		out.ok = false
 		out.status = -2
 		for _, err in errs {
@@ -436,7 +436,7 @@ fn parseResp(resp: http.Response): ApiResp {
 
 fn get*(url, endpoint: str, token: str = ""): ApiResp {
 	url = sprintf("%s/%s", url, endpoint)
-	par := http.GetParams{
+	par := http::GetParams{
 		userAgent: "umbox-cli"
 	}
 		 
@@ -444,12 +444,12 @@ fn get*(url, endpoint: str, token: str = ""): ApiResp {
 		par.headers = append(par.headers, "Authorization: UmBox " + token)
 	}
 	
-	return parseResp(http.get(url, par))
+	return parseResp(http::get(url, par))
 }
 
 fn post*(data: []char, url, endpoint: str, token: str = ""): ApiResp {
 	url = sprintf("%s/%s", url, endpoint)
-	par := http.PostParams{
+	par := http::PostParams{
 		userAgent: "umbox-cli"
 	}
 		 
@@ -457,5 +457,5 @@ fn post*(data: []char, url, endpoint: str, token: str = ""): ApiResp {
 		par.headers = append(par.headers, "Authorization: UmBox " + token)
 	}
 	
-	return parseResp(http.post(url, data, par))
+	return parseResp(http::post(url, data, par))
 }
