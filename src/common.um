@@ -194,7 +194,8 @@ type Meta* = struct {
 	license: str
 	description: str
 	readme: str
-	link: str
+	source: str
+	homepage: str
 	dependencies: []Box
 	include: []str
 	run: str
@@ -214,7 +215,6 @@ fn (m: ^Meta) toJSON*(): str {
 		enc.putKey("license"); enc.putVal(m.license)
 		enc.putKey("description"); enc.putVal(m.description)
 		enc.putKey("readme"); enc.putVal(m.readme)
-		enc.putKey("link"); enc.putVal(m.link)
 		enc.putKey("dependencies"); enc.startArray()
 			for i,v in m.dependencies {
 				enc.putVal(v.encode())
@@ -226,6 +226,14 @@ fn (m: ^Meta) toJSON*(): str {
 				enc.putVal(v)
 			}
 		enc.endArray()
+
+		if len(m.source) > 0 {
+			enc.putKey("source"); enc.putVal(m.source)
+		}
+
+		if len(m.homepage) > 0 {
+			enc.putKey("homepage"); enc.putVal(m.homepage)
+		}
 			
 		if len(m.run) > 0 {
 			enc.putKey("run"); enc.putVal(m.run)
@@ -274,7 +282,7 @@ fn parseDep*(dep: str): Box {
 			path: strings::trimprefix(source, "file://")
 		}
 	}
-		
+
 	return null
 }
 
@@ -342,10 +350,18 @@ fn getMeta*(path: str): (Meta, std::Err) {
 		return {}, error(.jsonKeyNotFound, "readme")
 	}
 
+	if ^str(r["source"]) != null {
+		m.source = str(r["source"])
+	}
+
+	if ^str(r["homepage"]) != null {
+		m.homepage = str(r["homepage"])
+	}
+
 	if ^str(r["link"]) != null {
-		m.link = str(r["link"])
-	} else {
-		return {}, error(.jsonKeyNotFound, "link")
+		m.source = str(r["link"])
+		m.homepage = str(r["link"])
+		printf("Warning: The `link` option has been deprecated in favor of `source` and `homepage`\n")
 	}
 
 	if ^[]any(r["dependencies"]) != null {
