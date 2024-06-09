@@ -8,6 +8,10 @@ inputs:
   secret:
     decription: "UmBox secret"
     required: true
+  debug:
+    description: "Enable debug mode"
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
@@ -22,9 +26,17 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.dir }}
-        ./umbox_portable/umbox build
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          ./umbox_portable/umbox build -d
+        else
+          ./umbox_portable/umbox build
+        fi
     - name: Upload
       shell: bash
       run: |
         cd ${{ inputs.dir }}
-        ./umbox_portable/umbox upload ${{ inputs.secret }} box.tar
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          ./umbox_portable/umbox upload -d ${{ inputs.secret }} box.tar
+        else
+          ./umbox_portable/umbox upload ${{ inputs.secret }} box.tar
+        fi
