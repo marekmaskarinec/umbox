@@ -20,23 +20,23 @@ runs:
       run: |
         cd ${{ inputs.dir }}
         sudo apt install -y curl unzip zip nsis rsync
-        curl https://mrms.cz/dl/umbox/umbox_portable.zip -O
-        unzip umbox_portable.zip
+        curl https://mrms.cz/dl/umbox/umbox_linux.zip -O
+        unzip umbox_linux.zip
     - name: Build
       shell: bash
       run: |
         cd ${{ inputs.dir }}
         if [ "${{ inputs.debug }}" == "true" ]; then
-          ./umbox_portable/umbox build -d
+          ./umbox_linux/umbox build -d
         else
-          ./umbox_portable/umbox build
+          ./umbox_linux/umbox build
         fi
     - name: Upload
       shell: bash
       run: |
         cd ${{ inputs.dir }}
         if [ "${{ inputs.debug }}" == "true" ]; then
-          ./umbox_portable/umbox upload -d ${{ inputs.secret }} box.tar
+          ./umbox_linux/umbox upload -d ${{ inputs.secret }} box.tar
         else
-          ./umbox_portable/umbox upload ${{ inputs.secret }} box.tar
+          ./umbox_linux/umbox upload ${{ inputs.secret }} box.tar
         fi
