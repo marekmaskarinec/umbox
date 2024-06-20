@@ -82,6 +82,10 @@ fn (b: ^HTTPBox) getName*(): str {
 }
 
 fn (b: ^HTTPBox) exists*(file: str = "version"): bool {
+	if debugMode {
+		printf("CHECK %s/%s@%s\n", b.name, file, b.url)
+	}
+
 	resp := http::get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
 		userAgent: "umbox-cli"
 	})
@@ -90,6 +94,10 @@ fn (b: ^HTTPBox) exists*(file: str = "version"): bool {
 }
 
 fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std::Err) {
+	if debugMode {
+		printf("DL %s/%s@%s\n", b.name, file, b.url)
+	}
+
 	resp := http::get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
 		userAgent: "umbox-cli"
 	})
@@ -428,8 +436,11 @@ fn parseResp(resp: http::Response): ApiResp {
 	if errs := ^[]json::Error(payload); errs != null {
 		out.ok = false
 		out.status = -2
-		for _, err in errs {
-			out.msg += sprintf("(%d): %s\n", err.lno, err.message)
+		out.msg = sprintf("invalid response body (status code: %d)", resp.status)
+		if debugMode {
+			for _, err in errs {
+				out.msg += sprintf("(%d): %s\n", err.lno, err.message)
+			}
 		}
 		return out
 	}
@@ -459,8 +470,18 @@ fn get*(url, endpoint: str, token: str = ""): ApiResp {
 	if len(token) > 0 {
 		par.headers = append(par.headers, "Authorization: UmBox " + token)
 	}
+
+	if debugMode {
+		printf("GET %s, %v\n", url, par)
+	}
+
+	r := http::get(url, par)
+
+	if debugMode {
+		printf("  < %v\n", r)
+	}
 	
-	return parseResp(http::get(url, par))
+	return parseResp(r)
 }
 
 fn post*(data: []char, url, endpoint: str, token: str = ""): ApiResp {
@@ -473,5 +494,18 @@ fn post*(data: []char, url, endpoint: str, token: str = ""): ApiResp {
 		par.headers = append(par.headers, "Authorization: UmBox " + token)
 	}
 	
-	return parseResp(http::post(url, data, par))
+	if debugMode {
+		printf("POST %s, %v\n", url, par)
+		printf("======DATA BEGIN======\n")
+		printf("%v\n", data)
+		printf("======DATA END========\n")
+	}
+
+	r := http::post(url, data, par)
+
+	if debugMode {
+		printf("  < %v\n", r)
+	}
+
+	return parseResp(r)
 }
