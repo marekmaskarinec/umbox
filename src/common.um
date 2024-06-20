@@ -211,6 +211,7 @@ type Meta* = struct {
 	runWindows: str
 	preBuild: str
 	postBuild: str
+	others: map[str]any
 }
 
 fn (m: ^Meta) toJSON*(): str {
@@ -261,6 +262,15 @@ fn (m: ^Meta) toJSON*(): str {
 
 		if len(m.postBuild) > 0 {
 			enc.putKey("post_build"); enc.putVal(m.postBuild)
+		}
+
+		if len(keys(m.others)) > 0 {
+			for k,v in m.others {
+				if valid(v) {
+					enc.putKey(k)
+					enc.putVal(v)
+				}
+			}
 		}
 	enc.endObject()
 
@@ -324,52 +334,61 @@ fn getMeta*(path: str): (Meta, std::Err) {
 
 	if ^str(r["name"]) != null {
 		m.name = str(r["name"])
+		r ^= delete(r^, "name")
 	} else {
 		return {}, error(.jsonKeyNotFound, "name")
 	}
 	
 	if ^str(r["version"]) != null {
 		m.version = str(r["version"])
+		r ^= delete(r^, "version")
 	} else {
 		return {}, error(.jsonKeyNotFound, "version")
 	}
 	
 	if ^str(r["author"]) != null {
 		m.author = str(r["author"])
+		r ^= delete(r^, "author")
 	} else {
 		return {}, error(.jsonKeyNotFound, "author")
 	}
 
 	if ^str(r["license"]) != null {
 		m.license = str(r["license"])
+		r ^= delete(r^, "license")
 	} else {
 		return {}, error(.jsonKeyNotFound, "license")
 	}
 
 	if ^str(r["description"]) != null {
 		m.description = str(r["description"])
+		r ^= delete(r^, "description")
 	} else {
 		return {}, error(.jsonKeyNotFound, "description")
 	}
 
 	if ^str(r["readme"]) != null {
 		m.readme = str(r["readme"])
+		r ^= delete(r^, "readme")
 	} else {
 		return {}, error(.jsonKeyNotFound, "readme")
 	}
 
 	if ^str(r["source"]) != null {
 		m.source = str(r["source"])
+		r ^= delete(r^, "source")
 	}
 
 	if ^str(r["homepage"]) != null {
 		m.homepage = str(r["homepage"])
+		r ^= delete(r^, "homepage")
 	}
 
 	if ^str(r["link"]) != null {
 		m.source = str(r["link"])
 		m.homepage = str(r["link"])
 		printf("Warning: The `link` option has been deprecated in favor of `source` and `homepage`\n")
+		r ^= delete(r^, "link")
 	}
 
 	if ^[]any(r["dependencies"]) != null {
@@ -380,35 +399,44 @@ fn getMeta*(path: str): (Meta, std::Err) {
 				return {}, error(.box, str(v))
 			}
 		}
+		r ^= delete(r^, "dependencies")
 	} else {
 		return {}, error(.jsonKeyNotFound, "dependencies")
 	}
 
 	if ^[]any(r["include"]) != null {
 		m.include = []str([]any(r["include"]))
+		r ^= delete(r^, "include")
 	} else {
 		return {}, error(.jsonKeyNotFound, "include")
 	}
 
 	if ^str(r["run"]) != null {
 		m.run = str(r["run"])
+		r ^= delete(r^, "run")
 	}
 	
 	if ^str(r["run_posix"]) != null {
 		m.runPosix = str(r["run_posix"])
+		r ^= delete(r^, "run_posix")
 	}
 
 	if ^str(r["run_windows"]) != null {
 		m.runWindows = str(r["run_windows"])
+		r ^= delete(r^, "run_windows")
 	}
 
 	if ^str(r["pre_build"]) != null {
 		m.preBuild = str(r["pre_build"])
+		r ^= delete(r^, "pre_build")
 	}
 
 	if ^str(r["post_build"]) != null {
 		m.postBuild = str(r["post_build"])
+		r ^= delete(r^, "post_build")
 	}
+
+	m.others = r^
 
 	return m, {}
 }
