@@ -1,7 +1,7 @@
 import (
     "std.um"
     
-		"src/common.um"
+    "src/common.um"
     "src/build.um"
     "src/init.um"
     "src/install.um"
@@ -11,6 +11,7 @@ import (
     "src/update.um"
     "src/register.um"
     "src/upload.um"
+    newbox = "src/new.um"
 )
 
 fn help() {
@@ -18,10 +19,11 @@ fn help() {
         "Arguments:\n" +
         "\t-h, --help - Display this help message\n" +
         "\t-u, --url - Specify the UmBox server URL (Default: https://umbox.tophat2d.dev/)\n" +
-				"\t-d - Run in debug mode\n\n" +
+        "\t-d - Run in debug mode\n\n" +
         "Modes:\n" +
         "\tbuild - Build a box.tar\n" +
-        "\tinit - Initialize a package\n" +
+        "\tnew - Make a new package\n" +
+        "\tinit - Initialize an existing package\n" +
         "\tinstall - Install a package\n" +
         "\tremove - Remove a package\n" +
         "\trun - Run the current package\n" +
@@ -42,15 +44,15 @@ fn main() {
         if std::argv(i) == "-h" || std::argv(i) == "--help" {
             help()
             return
-				} else if std::argv(i) == "-d" {
-					common::debugMode = true
+        } else if std::argv(i) == "-d" {
+            common::debugMode = true
         } else if std::argv(i) == "-u" || std::argv(i) == "--url" {
             if i == std::argc() - 1 {
                 printf("--url requires an argument")
                 return
             }
-            
-						common::serverUrl = std::argv(i + 1)
+
+            common::serverUrl = std::argv(i + 1)
             i += 1
         } else {
             if std::argv(i) == "build" {
@@ -71,12 +73,14 @@ fn main() {
                 common::exitif(register::run(i + 1))
             } else if std::argv(i) == "upload" {
                 common::exitif(upload::run(i + 1))
+            } else if std::argv(i) == "new" {
+                common::exitif(newbox::run(i + 1))
             } else {
                 printf("Unknown command: %s\n", std::argv(i))
                 help()
                 return
             }
-            
+
             break
         }
     }
