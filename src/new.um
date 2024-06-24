@@ -1,0 +1,23 @@
+import (
+    "std.um"
+    "common.um"
+    "init.um"
+
+    "../umbox/os/os.um"
+)
+
+fn run*(argi: int): std::Err {
+    if std::argc() - argi < 1 {
+        return common::error(.cli, "umbox new <boxName> [<preset>]")
+    }
+
+    boxName := std::argv(argi)
+
+    if err := os::mkdir(boxName); err.code != 0 {
+        return err
+    }
+
+    os::chdir(boxName)
+
+    return init::run(argi + 1)
+}
