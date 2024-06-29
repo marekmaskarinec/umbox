@@ -7,17 +7,12 @@ import (
 	"../umbox/strings/strings.um"
 )
 
-fn run*(argi: int): std::Err {
+fn run*(args: []str): std::Err {
 	meta, err := common::getMeta("box.json") 
 	if err.code != 0 {
 		return err
 	}
 	
-	args := ""
-	for i := argi; i < std::argc(); i++ {
-		args += " " + std::argv(i)
-	}
-	      
 	cmd := meta.run
 	pathSep := ""
 	
@@ -52,7 +47,7 @@ fn run*(argi: int): std::Err {
 		std::system(cmd)
 	}
 
-	std::system(args)
+	std::system(strings::join(args, " "))
 
 	return {}
 }

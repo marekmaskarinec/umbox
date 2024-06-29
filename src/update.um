@@ -155,21 +155,7 @@ fn touchDep(dep: str, touched: ^map[str]bool): std::Err {
 	return {}
 }
 
-fn run*(argi: int): std::Err {
-	for argi < std::argc() {
-		v := std::argv(argi)
-
-		if v == "-c" {
-			copyDeps = true
-			printf("NOTE: The -c flag is experimental. It is advised to always remove the umbox/\ndirectory before running update with this flag\n")
-		} else {
-			printf("usage: umbox update [ -c ]\n  -c: Don't use symlinks\n")
-			return {}
-		}
-
-		argi++
-	}
-
+fn run*(copyDeps: bool = false): std::Err {
 	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return err

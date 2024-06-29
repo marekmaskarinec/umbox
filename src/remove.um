@@ -5,13 +5,8 @@ import (
 	"update.um"
 )
 
-fn run*(argi: int): std::Err {
-	if argi != std::argc() - 1 {
-		fprintf(std::stderr(), "Usage: umbox install <package_name>\n")
-		return {}
-	}
-
-	box := common::parseDep(std::argv(argi))
+fn run*(boxStr: str): std::Err {
+	box := common::parseDep(boxStr)
 
 	meta, err := common::getMeta("box.json") 
 	if err.code != 0 {
@@ -24,10 +19,10 @@ fn run*(argi: int): std::Err {
 			break
 		}
 	}
-      
+   
 	f := std::fopen("box.json", "w").item0
 	fprintf(f, "%s", meta.toJSON())
 	std::fclose(f)
 
-	return update::run(std::argc())
+	return update::run()
 }

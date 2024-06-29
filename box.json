@@ -5,7 +5,6 @@
 	"license": "MIT",
 	"description": "",
 	"readme": "README.md",
-	"link": "",
 	"dependencies": [
 		"http",
 		"filepath",
@@ -15,7 +14,8 @@
 		"tar",
 		"strings",
 		"blake2",
-		"umka"
+		"umka",
+		"args"
 	],
 	"include": [
 	]

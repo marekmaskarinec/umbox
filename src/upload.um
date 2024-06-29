@@ -8,14 +8,7 @@ import (
 	"common.um"
 )
 
-fn run*(argi: int): std::Err {
-	if argi != std::argc() - 2 {
-		return common::error(.cli, "umbox upload <token> <file>")
-	}
-	
-	token := std::argv(argi)
-	file := std::argv(argi + 1)
-	
+fn run*(token, file: str): std::Err {
 	if !os::isfile(file) {
 		return common::error(.fileNotFound, file)
 	}

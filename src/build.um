@@ -7,11 +7,7 @@ import (
 	"../umbox/tar/tar.um"
 )
 
-fn run*(argi: int): std::Err {
-	if argi != std::argc() {
-		return common::error(.cli)
-	}
-
+fn run*(): std::Err {
 	meta, err := common::getMeta("box.json") 
 	if err.code != 0 {
 		return err

@@ -1,83 +1,92 @@
 import (
-    "std.um"
-    
-		"src/common.um"
-    "src/build.um"
-    "src/init.um"
-    "src/install.um"
-    "src/remove.um"
-    "src/run.um"
-    "src/search.um"
-    "src/update.um"
-    "src/register.um"
-    "src/upload.um"
+	"std.um"
+	
+	"src/common.um"
+	"src/build.um"
+	"src/init.um"
+	"src/install.um"
+	"src/remove.um"
+	"src/run.um"
+	"src/search.um"
+	"src/update.um"
+	"src/register.um"
+	"src/upload.um"
+
+	"umbox/args/args.um"
 )
 
 fn help() {
-    printf("UmBox v1.3 - an umka package manager\n\n" +
-        "Arguments:\n" +
-        "\t-h, --help - Display this help message\n" +
-        "\t-u, --url - Specify the UmBox server URL (Default: https://umbox.tophat2d.dev/)\n" +
+	printf("UmBox v1.3 - an umka package manager\n\n" +
+		"Arguments:\n" +
+		"\t-h, --help - Display this help message\n" +
+		"\t-u, --url - Specify the UmBox server URL (Default: https://umbox.tophat2d.dev/)\n" +
 				"\t-d - Run in debug mode\n\n" +
-        "Modes:\n" +
-        "\tbuild - Build a box.tar\n" +
-        "\tinit - Initialize a package\n" +
-        "\tinstall - Install a package\n" +
-        "\tremove - Remove a package\n" +
-        "\trun - Run the current package\n" +
-        "\tsearch - Search for a package\n" +
-        "\tupdate - Update installed package\n" + 
-        "\tregister - Register a package\n" +
-        "\tupload - Upload a file to a package\n"
-    )
+		"Modes:\n" +
+		"\tbuild - Build a box.tar\n" +
+		"\tinit - Initialize a package\n" +
+		"\tinstall - Install a package\n" +
+		"\tremove - Remove a package\n" +
+		"\trun - Run the current package\n" +
+		"\tsearch - Search for a package\n" +
+		"\tupdate - Update installed package\n" + 
+		"\tregister - Register a package\n" +
+		"\tupload - Upload a file to a package\n"
+	)
 }
 
 fn main() {
-    if std::argc() == 1 {
-        help()
-        return
-    }
+	args := args::mk("UmBox", "v1.3", "an Umka package manager", args::stdargv())
 
-    for i:=1; i < std::argc(); i++ {
-        if std::argv(i) == "-h" || std::argv(i) == "--help" {
-            help()
-            return
-				} else if std::argv(i) == "-d" {
-					common::debugMode = true
-        } else if std::argv(i) == "-u" || std::argv(i) == "--url" {
-            if i == std::argc() - 1 {
-                printf("--url requires an argument")
-                return
-            }
-            
-						common::serverUrl = std::argv(i + 1)
-            i += 1
-        } else {
-            if std::argv(i) == "build" {
-                common::exitif(build::run(i + 1))
-            } else if std::argv(i) == "init" {
-                common::exitif(init::run(i + 1))
-            } else if std::argv(i) == "install" {
-                common::exitif(install::run(i + 1))
-            } else if std::argv(i) == "remove" {
-                common::exitif(remove::run(i + 1))
-            } else if std::argv(i) == "run" {
-                common::exitif(run::run(i + 1))
-            } else if std::argv(i) == "search" {
-                common::exitif(search::run(i + 1))
-            } else if std::argv(i) == "update" {
-                common::exitif(update::run(i + 1))
-            } else if std::argv(i) == "register" {
-                common::exitif(register::run(i + 1))
-            } else if std::argv(i) == "upload" {
-                common::exitif(upload::run(i + 1))
-            } else {
-                printf("Unknown command: %s\n", std::argv(i))
-                help()
-                return
-            }
-            
-            break
-        }
-    }
+	args.optional(&common::debugMode, "debug", "Enable debug mode").short('d')
+	args.optional(&common::serverUrl, "url", "Specify server URL").short('u')
+	args.help()
+
+	if args.mode("build", "Build a box.tar") {
+		args.check()
+		common::exitif(build::run())
+	} else if args.mode("init", "Initialize a box") {
+		preset := ""
+		args.optionalNext(&preset, "preset")
+		args.check()
+		common::exitif(init::run(preset))
+	} else if args.mode("install", "Install a box") {
+		box := ""
+		args.requiredNext(&box, "box")
+		args.check()
+		common::exitif(install::run(box))
+	} else if args.mode("remove", "Remove a box") {
+		box := ""
+		args.requiredNext(&box, "box")
+		args.check()
+		common::exitif(remove::run(box))
+	} else if args.mode("run", "Run a command inside the UmBox env") {
+		cmd := []str{}
+		args.optionalNext(&cmd, "command")
+		args.check()
+		common::exitif(run::run(cmd))
+	} else if args.mode("search", "Search for a box online") {
+		query := ""
+		args.requiredNext(&query, "search query")
+		args.check()
+		common::exitif(search::run(query))
+	} else if args.mode("update", "Update all dependencies") {
+		copyDeps := false
+		args.optional(&copyDeps, "copy", "Copy dependencies instead of linking").short('c')
+		args.check()
+		common::exitif(update::run(copyDeps))
+	} else if args.mode("register", "Register a box") {
+		name := ""
+		args.requiredNext(&name, "Box name")
+		args.check()
+		common::exitif(register::run(name))
+	} else if args.mode("upload", "Upload data to an online box") {
+		secret := ""
+		args.requiredNext(&secret, "Box secret")
+		file := "box.tar"
+		args.optionalNext(&file, "File to upload")
+		args.check()
+		common::exitif(upload::run(secret, file))
+	} else {
+		args.usage()
+	}
 }

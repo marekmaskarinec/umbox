@@ -5,13 +5,7 @@ import (
 	"../umbox/http/http.um"
 )
 
-fn run*(argi: int): std::Err {
-	if argi != std::argc() - 1 {
-		return common::error(.cli, "umbox register <query>")
-	}
-	
-	name := std::argv(argi)
-
+fn run*(name: str): std::Err {
 	resp := common::get(common::serverUrl, sprintf("api/register/%s", name))
 	if !resp.ok {
 		return common::error(.request, resp.msg)
