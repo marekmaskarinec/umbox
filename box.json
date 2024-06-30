@@ -13,7 +13,6 @@
 		"os",
 		"tar",
 		"strings",
-		"blake2",
 		"umka",
 		"args"
 	],

@@ -3,7 +3,6 @@ import (
 	"std.um"
 	"../umbox/os/os.um"
 	"../umbox/http/http.um"
-	"../umbox/blake2/blake2.um"
 	"../umbox/filepath/filepath.um"
 	"common.um"
 )
@@ -22,17 +21,20 @@ fn run*(token, file: str): std::Err {
 		return err
 	}
 
-	tokenHash := blake2::blake2b([]uint8([]char(token)))
-	tokenHashStr := ""
-	for i,b in tokenHash {
-		tokenHashStr += sprintf("%02x", b)
+	f, err := std::fopen(file, "rb")
+	if err.code != 0 {
+		return err
 	}
-	f := std::fopen(file, "rb").item0
-	
+
 	reqUrl := sprintf("api/package/%s/upload/%s", meta.name, filepath::file(file))
-	resp := common::post(std::freadall(f).item0, common::serverUrl, reqUrl, tokenHashStr)
+	resp := common::post(std::freadall(f).item0, common::serverUrl, reqUrl, token)
 	if !resp.ok {
 		return common::error(.request, resp.msg)
+	}
+
+	err = std::fclose(f)
+	if err.code != 0 {
+		return err
 	}
 
 	if resp.status != 200 {
