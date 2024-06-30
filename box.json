@@ -1,9 +1,11 @@
 {
 	"name": "umbox",
-	"version": "v1.1",
+	"version": "v1.4",
 	"author": "Marek Maskarinec <marek@mrms.cz>",
-	"license": "MIT",
-	"description": "",
+	"license": "Unlicense/MIT",
+	"description": "A package manager for Umka",
+	"homepage": "https://umbox.tophat2d.dev",
+	"source": "https://github.com/marekmaskarinec/umbox",
 	"readme": "README.md",
 	"dependencies": [
 		"http",

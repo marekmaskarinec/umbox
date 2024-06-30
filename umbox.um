@@ -15,27 +15,8 @@ import (
 	"umbox/args/args.um"
 )
 
-fn help() {
-	printf("UmBox v1.3 - an umka package manager\n\n" +
-		"Arguments:\n" +
-		"\t-h, --help - Display this help message\n" +
-		"\t-u, --url - Specify the UmBox server URL (Default: https://umbox.tophat2d.dev/)\n" +
-				"\t-d - Run in debug mode\n\n" +
-		"Modes:\n" +
-		"\tbuild - Build a box.tar\n" +
-		"\tinit - Initialize a package\n" +
-		"\tinstall - Install a package\n" +
-		"\tremove - Remove a package\n" +
-		"\trun - Run the current package\n" +
-		"\tsearch - Search for a package\n" +
-		"\tupdate - Update installed package\n" + 
-		"\tregister - Register a package\n" +
-		"\tupload - Upload a file to a package\n"
-	)
-}
-
 fn main() {
-	args := args::mk("UmBox", "v1.3", "an Umka package manager", args::stdargv())
+	args := args::mk("UmBox", "v1.4", "an Umka package manager", args::stdargv())
 
 	args.optional(&common::debugMode, "debug", "Enable debug mode").short('d')
 	args.optional(&common::serverUrl, "url", "Specify server URL").short('u')
