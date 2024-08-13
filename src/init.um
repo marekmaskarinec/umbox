@@ -36,9 +36,25 @@ fn downloadPreset(box: common::Box): (common::Meta, std::Err) {
 	return m, {}
 }
 
-fn run*(presetStr: str): std::Err {
-	if ls, err := os::listdir("."); len(ls) > 2 {
-		return common::error(.dirNotEmpty)
+fn run*(name: str, presetStr: str): std::Err {
+	if name != "" && name != "." {
+		if os::isfile(name) {
+			return common::error(.failed, "file already exists")
+		}
+
+		err := os::mkdirp(name)
+		if err.code != 0 {
+			return err
+		}
+
+		err = os::chdir(name)
+		if err.code != 0 {
+			return err
+		}
+	}
+
+	if os::isfile("box.json") {
+		return common::error(.failed, "directory already contains a box.json")
 	}
 
 	m := common::Meta{
@@ -66,6 +82,12 @@ fn run*(presetStr: str): std::Err {
 	f := std::fopen("box.json", "w").item0
 	fprintf(f, "%s", m.toJSON())
 	std::fclose(f)
+
+	if os::isfile(".gitignore") {
+		f := std::fopen(".gitignore", "a").item0
+		fprintf(f, "%s", "\n\nbox.tar\numbox/\n")
+		std::fclose(f)
+	}
 
 	return update::run()
 }

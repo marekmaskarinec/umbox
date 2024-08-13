@@ -26,10 +26,12 @@ fn main() {
 		args.check()
 		common::exitif(build::run())
 	} else if args.mode("init", "Initialize a box") {
+		path := ""
 		preset := ""
-		args.optionalNext(&preset, "preset")
+		args.optionalNext(&path, "path")
+		args.optional(&preset, "preset", "Specify preset name").short('p')
 		args.check()
-		common::exitif(init::run(preset))
+		common::exitif(init::run(path, preset))
 	} else if args.mode("install", "Install a box") {
 		box := ""
 		args.requiredNext(&box, "box")

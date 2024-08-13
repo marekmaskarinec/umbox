@@ -22,10 +22,9 @@ type ErrCode* = enum {
 	jsonKeyNotFound
 	preBuild
 	postBuild
-	dirNotEmpty
 }
 
-const errStrings = [13]str{
+const errStrings = [12]str{
 	"not an error",
 	"failed",
 	"invalid cli arguments",
@@ -37,8 +36,7 @@ const errStrings = [13]str{
 	"file not found",
 	"json key not found",
 	"pre build failed",
-	"post build failed",
-	"directory not empty"
+	"post build failed"
 }
 
 fn error*(ec: ErrCode, msg: str = ""): std::Err {
