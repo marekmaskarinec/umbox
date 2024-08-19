@@ -23,8 +23,10 @@ fn main() {
 	args.help()
 
 	if args.mode("build", "Build a box.tar") {
+		output := "box.tar"
+		args.optional(&output, "output", "Specify output path").short('o')
 		args.check()
-		common::exitif(build::run())
+		common::exitif(build::run(output))
 	} else if args.mode("init", "Initialize a box") {
 		path := ""
 		preset := ""

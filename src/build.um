@@ -7,7 +7,7 @@ import (
 	"../umbox/tar/tar.um"
 )
 
-fn run*(): std::Err {
+fn run*(output: str): std::Err {
 	meta, err := common::getMeta("box.json") 
 	if err.code != 0 {
 		return err
@@ -21,7 +21,7 @@ fn run*(): std::Err {
 		}
 	}
 	
-	t, err := tar::open("box.tar", "w")
+	t, err := tar::open(output, "w")
 	if err.code != 0 {
 		return err
 	}
