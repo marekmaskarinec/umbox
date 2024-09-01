@@ -18,7 +18,7 @@ jobs:
     - name: Build and upload
       run: |
         cd ..
-        curl https://mrms.cz/dl/umbox/umbox_linux.zip -o umbox_linux.zip
+        curl -L https://github.com/marekmaskarinec/umbox/releases/download/v1.4/umbox_linux_v14.zip -o umbox_linux.zip
         unzip umbox_linux.zip
         cd umbox
         ../umbox_linux/umbox update
