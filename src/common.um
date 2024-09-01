@@ -24,7 +24,7 @@ type ErrCode* = enum {
 	postBuild
 }
 
-const errStrings = [12]str{
+var errStrings: []str = []str{
 	"not an error",
 	"failed",
 	"invalid cli arguments",
