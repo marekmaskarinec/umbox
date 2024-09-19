@@ -84,11 +84,13 @@ fn (b: ^HTTPBox) exists*(file: str = "version"): bool {
 		printf("CHECK %s/%s@%s\n", b.name, file, b.url)
 	}
 
-	resp := http::get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
-		userAgent: "umbox-cli"
+	resp, err := http::request({
+		method: .get,
+		url: sprintf("%s/api/package/%s/download/%s", b.url, b.name, file),
+		headers: { "User-Agent": "umbox-cli" }
 	})
 
-	return resp.ok && resp.status == 200
+	return err.code == 0 && resp.status == 200
 }
 
 fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std::Err) {
@@ -96,12 +98,14 @@ fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std::Err) {
 		printf("DL %s/%s@%s\n", b.name, file, b.url)
 	}
 
-	resp := http::get(sprintf("%s/api/package/%s/download/%s", b.url, b.name, file), {
-		userAgent: "umbox-cli"
+	resp, err := http::request({
+		method: .get,
+		url: sprintf("%s/api/package/%s/download/%s", b.url, b.name, file),
+		headers: { "User-Agent": "umbox-cli" }
 	})
 
-	if !resp.ok {
-		return {}, error(.request, resp.err)
+	if err.code != 0 {
+		return {}, err
 	}
 
 	if resp.status != 200 {
@@ -447,14 +451,6 @@ type ApiResp* = struct {
 }
 
 fn parseResp(resp: http::Response): ApiResp {
-	if !resp.ok {
-		return {
-			ok: false,
-			status: -1,
-			msg: resp.err
-		}
-	}
-		  
 	out := ApiResp{}
 	out.status = resp.status
 	
@@ -488,20 +484,30 @@ fn parseResp(resp: http::Response): ApiResp {
 }
 
 fn get*(url, endpoint: str, token: str = ""): ApiResp {
-	url = sprintf("%s/%s", url, endpoint)
-	par := http::GetParams{
-		userAgent: "umbox-cli"
+	req := http::Request{
+		url: sprintf("%s/%s", url, endpoint),
+		headers: {
+			"User-Agent": "umbox-cli"
+		}
 	}
-		 
+
 	if len(token) > 0 {
-		par.headers = append(par.headers, "Authorization: UmBox " + token)
+		req.headers["Authorization"] = "UmBox " + token
 	}
 
 	if debugMode {
-		printf("GET %s, %v\n", url, par)
+		printf("GET %s\n", req.url)
 	}
 
-	r := http::get(url, par)
+	r, err := http::request(req)
+	if err.code != 0 {
+		return {
+			ok: false,
+			status: -1,
+			data: err,
+			msg: err.msg
+		}
+	}
 
 	if debugMode {
 		printf("  < %v\n", r)
@@ -511,23 +517,34 @@ fn get*(url, endpoint: str, token: str = ""): ApiResp {
 }
 
 fn post*(data: []char, url, endpoint: str, token: str = ""): ApiResp {
-	url = sprintf("%s/%s", url, endpoint)
-	par := http::PostParams{
-		userAgent: "umbox-cli"
+	req := http::Request{
+		url: sprintf("%s/%s", url, endpoint),
+		headers: {
+			"User-Agent": "umbox-cli"
+		},
+		body: data
 	}
-		 
+
 	if len(token) > 0 {
-		par.headers = append(par.headers, "Authorization: UmBox " + token)
+		req.headers["Authorization"] = "UmBox " + token
 	}
 	
 	if debugMode {
-		printf("POST %s, %v\n", url, par)
+		printf("POST %s %lv\n", req.url, req.headers)
 		printf("======DATA BEGIN======\n")
 		printf("%v\n", data)
 		printf("======DATA END========\n")
 	}
 
-	r := http::post(url, data, par)
+	r, err := http::request(req)
+	if err.code != 0 {
+		return {
+			ok: false,
+			status: -1,
+			data: err,
+			msg: err.msg
+		}
+	}
 
 	if debugMode {
 		printf("  < %v\n", r)
