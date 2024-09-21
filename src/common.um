@@ -518,6 +518,7 @@ fn get*(url, endpoint: str, token: str = ""): ApiResp {
 
 fn post*(data: []char, url, endpoint: str, token: str = ""): ApiResp {
 	req := http::Request{
+		method: .post,
 		url: sprintf("%s/%s", url, endpoint),
 		headers: {
 			"User-Agent": "umbox-cli"
