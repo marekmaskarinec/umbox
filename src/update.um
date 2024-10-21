@@ -158,7 +158,7 @@ fn touchDep(dep: str, touched: ^map[str]bool): std::Err {
 fn run*(copyDeps: bool = false): std::Err {
 	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
-		return err
+		return common::error(.boxJsonError, err.msg)
 	}
 	
 	os::mkdirp("umbox")

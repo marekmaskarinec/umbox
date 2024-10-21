@@ -22,6 +22,7 @@ type ErrCode* = enum {
 	jsonKeyNotFound
 	preBuild
 	postBuild
+	boxJsonError
 }
 
 var errStrings: []str = []str{
@@ -36,7 +37,8 @@ var errStrings: []str = []str{
 	"file not found",
 	"json key not found",
 	"pre build failed",
-	"post build failed"
+	"post build failed",
+	"box.json error"
 }
 
 fn error*(ec: ErrCode, msg: str = ""): std::Err {
