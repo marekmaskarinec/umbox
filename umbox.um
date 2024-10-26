@@ -1,15 +1,16 @@
 import (
 	"std.um"
 	
-	"src/common.um"
 	"src/build.um"
+	"src/common.um"
 	"src/init.um"
 	"src/install.um"
+	"src/newbuild.um"
+	"src/register.um"
 	"src/remove.um"
 	"src/run.um"
 	"src/search.um"
 	"src/update.um"
-	"src/register.um"
 	"src/upload.um"
 
 	"umbox/args/args.um"
@@ -71,6 +72,8 @@ fn main() {
 		args.optionalNext(&file, "File to upload")
 		args.check()
 		common::exitif(upload::run(secret, file))
+	} else if args.mode("newbuild", "Run new experimental build") {
+		common::exitif(newbuild::run())
 	} else {
 		args.usage()
 	}

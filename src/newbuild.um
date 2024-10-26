@@ -1,0 +1,17 @@
+
+import (
+	"std.um"
+
+	"common.um"
+)
+
+fn run*(): std::Err {
+	meta, err := common::getMeta("box.json")
+	if err.code != 0 {
+		return common::error(.boxJsonError, err.msg)
+	}
+	
+	printf("%llv\n", meta.build)
+	
+	return {}
+}
