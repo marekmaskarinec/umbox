@@ -23,6 +23,7 @@ type ErrCode* = enum {
 	preBuild
 	postBuild
 	boxJsonError
+	buildError
 }
 
 var errStrings: []str = []str{
@@ -38,7 +39,8 @@ var errStrings: []str = []str{
 	"json key not found",
 	"pre build failed",
 	"post build failed",
-	"box.json error"
+	"box.json error",
+	"build error"
 }
 
 fn error*(ec: ErrCode, msg: str = ""): std::Err {
@@ -417,6 +419,8 @@ fn parseBuild*(o: map[str]any): (Build, std::Err) {
 			t := Target{}
 			if ^[]any(vo["sources"]) != null {
 				t.sources = []str([]any(vo["sources"]))
+			} else if ^str(vo["sources"]) != null {
+				t.sources = []str{str(vo["sources"])}
 			}
 			
 			if validkey(vo, "cflags") {
