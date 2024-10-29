@@ -23,6 +23,7 @@ type ErrCode* = enum {
 	preBuild
 	postBuild
 	boxJsonError
+	buildError
 }
 
 var errStrings: []str = []str{
@@ -38,7 +39,8 @@ var errStrings: []str = []str{
 	"json key not found",
 	"pre build failed",
 	"post build failed",
-	"box.json error"
+	"box.json error",
+	"build error"
 }
 
 fn error*(ec: ErrCode, msg: str = ""): std::Err {
@@ -200,6 +202,20 @@ fn (b: ^FileBox) encode*(): str {
 }
 
 type PlatString* = map[os::Platform]str
+
+fn (ps: ^PlatString) get*(): str {
+	plat := os::getPlatform()
+	
+	if validkey(ps^, plat) {
+		return ps[plat]
+	}
+	
+	if validkey(ps^, .unknown) {
+		return ps[.unknown]
+	}
+	
+	return ""
+}
 
 type (
 	Target* = struct {
@@ -389,6 +405,8 @@ fn parseBuild*(o: map[str]any): (Build, std::Err) {
 			t := Target{}
 			if ^[]any(vo["sources"]) != null {
 				t.sources = []str([]any(vo["sources"]))
+			} else if ^str(vo["sources"]) != null {
+				t.sources = []str{str(vo["sources"])}
 			}
 			
 			if validkey(vo, "cflags") {

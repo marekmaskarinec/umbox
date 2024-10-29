@@ -73,7 +73,10 @@ fn main() {
 		args.check()
 		common::exitif(upload::run(secret, file))
 	} else if args.mode("newbuild", "Run new experimental build") {
-		common::exitif(newbuild::run())
+		outDir := "out"
+		args.optional(&outDir, "output", "Specify output directory").short('o')
+
+		common::exitif(newbuild::run(outDir))
 	} else {
 		args.usage()
 	}

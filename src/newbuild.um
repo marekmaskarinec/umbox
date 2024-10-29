@@ -2,16 +2,95 @@
 import (
 	"std.um"
 
+	"../umbox/os/os.um"
+	"../umbox/filepath/filepath.um"
+	"../umbox/strings/strings.um"
+
 	"common.um"
 )
 
-fn run*(): std::Err {
+fn shouldRebuild*(target: str, sources: []str): (bool, std::Err) {
+	if !os::isfile(target) {
+		return true, {}
+	}
+	
+	tstat, err := os::stat(target)
+	if err.code != 0 {
+		return false, err
+	}
+	
+	for i in sources {
+		sstat, err := os::stat(sources[i])
+		if err.code != 0 {
+			return false, err
+		}
+		
+		if sstat.mtime > tstat.mtime {
+			return true, {}
+		}
+	}
+	
+	return false, {}
+}
+
+fn run*(outDir: str): std::Err {
 	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return common::error(.boxJsonError, err.msg)
 	}
 	
-	printf("%llv\n", meta.build)
+	if !meta.build.isValid {
+		return common::error(.boxJsonError, "no valid build structure")
+	}
+	
+	err = os::mkdirp(outDir)
+	if (err.code != 0) {
+		return err
+	}
+	
+	pre := meta.build.pre.get()
+	if pre != "" {
+		rc := std::system(pre)
+		if rc != 0 {
+			return common::error(.preBuild, sprintf("pre-build exited with code %d", rc))
+		}
+	}
+		 
+	cc := std::getenv("CC")
+	if cc == "" {
+		cc = "cc"
+	}
+
+	for path,target in meta.build.targets {
+		if filepath::ext(path) != "umi" {
+			printf("Warning: Only .umi files are supported, skipping %s\n", path)
+			continue
+		}
+		
+		fullPath := filepath::join(outDir, path)
+		rebuild, err := shouldRebuild(fullPath, target.sources)
+		if err.code != 0 {
+			return err
+		}
+				  
+		if !rebuild {
+			continue
+		}
+		
+		command := sprintf("%s -shared %s -o %s %s %s", cc, target.ldflags.get(), fullPath, target.cflags.get(), strings::join(target.sources, " "))
+		rc := std::system(command)
+		if rc != 0 {
+			return common::error(.buildError, sprintf("build for %s exited with code %d", path, rc))
+		}
+	}
+	
+	post := meta.build.post.get()
+	if post != "" {
+		rc := std::system(post)
+		if rc != 0 {
+			return common::error(.postBuild, sprintf("post-build exited with code %d", rc))
+		}
+	}
 	
 	return {}
 }
