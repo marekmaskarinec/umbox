@@ -14,7 +14,7 @@ fn run*(output: str): std::Err {
 	}
 	
 	if len(meta.preBuild) > 0 {
-		code := std::system(meta.preBuild)
+		code := std::system(meta.preBuild.get())
 
 		if code != 0 {
 			return common::error(.preBuild, std::itoa(code))
@@ -52,7 +52,7 @@ fn run*(output: str): std::Err {
 	}
 	
 	if len(meta.postBuild) > 0 {
-		code := std::system(meta.postBuild)
+		code := std::system(meta.postBuild.get())
 
 		if code != 0 {
 			return common::error(.postBuild, std::itoa(code))

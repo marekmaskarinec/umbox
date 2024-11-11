@@ -20,6 +20,8 @@
 	],
 	"include": [
 	],
-	"run_posix": "./umbox/umka/umka umbox.um",
-	"run_windows": ".\umbox\umka\umka.exe umbox.um"
+	"run": {
+		"posix": "./umbox/umka/umka umbox.um",
+		"windows": ".\umbox\umka\umka.exe umbox.um"
+	}
 }

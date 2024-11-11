@@ -199,6 +199,16 @@ fn (b: ^FileBox) encode*(): str {
 	return sprintf("%s@file://%s", b.name, b.path)
 }
 
+type PlatString* = map[os::Platform]str
+
+fn (ps: ^PlatString) get*(): str {
+	if validkey(ps^, os::getPlatform()) {
+		return ps[os::getPlatform()]
+	}
+	
+	return ps[.unknown]
+}
+
 type Meta* = struct {
 	name: str
 	version: str
@@ -210,12 +220,38 @@ type Meta* = struct {
 	homepage: str
 	dependencies: []Box
 	include: []str
-	run: str
-	runPosix: str
-	runWindows: str
-	preBuild: str
-	postBuild: str
+	run: PlatString
+	preBuild: PlatString
+	postBuild: PlatString
 	others: map[str]any
+}
+
+fn putPlatString(enc: ^jsonenc::Encoder, ps: PlatString) {
+	simple := true
+	for k,v in ps {
+		if k != .unknown {
+			simple = false
+			break
+		}
+	}
+
+	if simple {
+		enc.putVal(ps[.unknown])
+		return
+	}
+
+	enc.startObject()
+		for k,v in ps {
+			switch k {
+			case .unknown: continue
+			case .windows: enc.putKey("windows")
+			case .posix: enc.putKey("posix")
+			case .emscripten: enc.putKey("emscripten")
+			}
+
+			enc.putVal(v)
+		}
+	enc.endObject()
 }
 
 fn (m: ^Meta) toJSON*(): str {
@@ -249,23 +285,15 @@ fn (m: ^Meta) toJSON*(): str {
 		}
 			
 		if len(m.run) > 0 {
-			enc.putKey("run"); enc.putVal(m.run)
-		}
-
-		if len(m.runPosix) > 0 {
-			enc.putKey("run_posix"); enc.putVal(m.runPosix)
-		}
-
-		if len(m.runWindows) > 0 {
-			enc.putKey("run_windows"); enc.putVal(m.runWindows)
+			enc.putKey("run"); putPlatString(&enc, m.run)
 		}
 
 		if len(m.preBuild) > 0 {
-			enc.putKey("pre_build"); enc.putVal(m.preBuild)
+			enc.putKey("pre_build"); putPlatString(&enc, m.preBuild)
 		}
 
 		if len(m.postBuild) > 0 {
-			enc.putKey("post_build"); enc.putVal(m.postBuild)
+			enc.putKey("post_build"); putPlatString(&enc, m.postBuild)
 		}
 
 		if len(keys(m.others)) > 0 {
@@ -306,6 +334,39 @@ fn parseDep*(dep: str): Box {
 	}
 
 	return null
+}
+
+fn getPlatString(o: any): (PlatString, std::Err) {
+	if s := ^str(o); s != null {
+		return { .unknown: s^ }, {}
+	}
+	
+	obj := ^map[str]any(o)
+	if obj == null {
+		printf("%v\n", o)
+		return {}, error(.json, "invalid platform string")
+	}
+  
+	ps := PlatString{}
+	for k, v in obj {
+		if ^str(v) == null {
+			return {}, error(.json, sprintf("invalid platform value: %s", k))
+		}
+
+		if k == "unknown" {
+			ps[.unknown] = str(v)
+		} else if k == "windows" {
+			ps[.windows] = str(v)
+		} else if k == "posix" {
+			ps[.posix] = str(v)
+		} else if k == "emscripten" {
+			ps[.emscripten] = str(v)
+		} else {
+			return {}, error(.json, sprintf("invalid platform key: %s", k))
+		}
+	}
+	
+	return ps, {}
 }
 
 fn getMeta*(path: str): (Meta, std::Err) {
@@ -415,28 +476,44 @@ fn getMeta*(path: str): (Meta, std::Err) {
 		return {}, error(.jsonKeyNotFound, "include")
 	}
 
-	if ^str(r["run"]) != null {
-		m.run = str(r["run"])
+	if validkey(r^, "run") {
+		var err: std::Err
+		m.run, err = getPlatString(r["run"])
+		if err.code != 0 {
+			return {}, err
+		}
 		r ^= delete(r^, "run")
 	}
 	
 	if ^str(r["run_posix"]) != null {
-		m.runPosix = str(r["run_posix"])
+		m.run[.posix] = str(r["run_posix"])
 		r ^= delete(r^, "run_posix")
+		
+		printf("Warning: The `run_posix` option has been deprecated in favor of `run` with platform strings\n")
 	}
 
 	if ^str(r["run_windows"]) != null {
-		m.runWindows = str(r["run_windows"])
+		m.run[.windows] = str(r["run_windows"])
 		r ^= delete(r^, "run_windows")
+
+		printf("Warning: The `run_windows` option has been deprecated in favor of `run` with platform strings\n")
 	}
 
-	if ^str(r["pre_build"]) != null {
-		m.preBuild = str(r["pre_build"])
+	if validkey(r^, "pre_build") {
+		var err: std::Err
+		m.preBuild, err = getPlatString(r["pre_build"])
+		if err.code != 0 {
+			return {}, err
+		}
 		r ^= delete(r^, "pre_build")
 	}
 
-	if ^str(r["post_build"]) != null {
-		m.postBuild = str(r["post_build"])
+	if validkey(r^, "post_build") {
+		var err: std::Err
+		m.postBuild, err = getPlatString(r["post_build"])
+		if err.code != 0 {
+			return {}, err
+		}
 		r ^= delete(r^, "post_build")
 	}
 

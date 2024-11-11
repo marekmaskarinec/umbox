@@ -51,6 +51,7 @@ fn fetchDep(dep: common::Box, versions: ^map[str]str): std::Err {
 	// Fetch dependencies
 	meta, err := common::getMeta(filepath::join("umbox", dep.getName(), "box.json"))
 	if err.code != 0 {
+		err.msg = filepath::join("umbox", dep.getName(), "box.json") + ": " + err.msg
 		return err
 	}
 
@@ -142,6 +143,7 @@ fn touchDep(dep: str, touched: ^map[str]bool): std::Err {
 
 	meta, err := common::getMeta(filepath::join("umbox", dep, "box.json"))
 	if err.code != 0 {
+		err.msg = filepath::join("umbox", dep, "box.json") + ": " + err.msg
 		return err
 	}
 

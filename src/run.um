@@ -12,26 +12,18 @@ fn run*(args: []str): std::Err {
 	if err.code != 0 {
 		return common::error(.boxJsonError, err.msg)
 	}
-	
-	cmd := meta.run
+
+	cmd := meta.run.get()
 	pathSep := ""
-	
+
 	if os::getPlatform() == os::Platform.posix {
-		if len(meta.runPosix) != 0 {
-			cmd = meta.runPosix
-		}
-		
 		pathSep = ":"
 	}
-	     
+
 	if os::getPlatform() == os::Platform.windows {
-		if len(meta.runWindows) != 0 {
-			cmd = meta.runWindows
-		}
-		
 		pathSep = ";"
 	}
-	
+
 	path := std::getenv("PATH")
 	for i,d in meta.dependencies {
 		cwd, err := os::getCwd()
