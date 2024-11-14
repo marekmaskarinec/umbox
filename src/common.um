@@ -452,7 +452,7 @@ fn getMeta*(path: str): (Meta, std::Err) {
 	if ^str(r["link"]) != null {
 		m.source = str(r["link"])
 		m.homepage = str(r["link"])
-		printf("Warning: The `link` option has been deprecated in favor of `source` and `homepage`\n")
+		printf("%s: Warning: The `link` option has been deprecated in favor of `source` and `homepage`\n", m.name)
 		r ^= delete(r^, "link")
 	}
 
@@ -489,14 +489,14 @@ fn getMeta*(path: str): (Meta, std::Err) {
 		m.run[.posix] = str(r["run_posix"])
 		r ^= delete(r^, "run_posix")
 		
-		printf("Warning: The `run_posix` option has been deprecated in favor of `run` with platform strings\n")
+		printf("%s: Warning: The `run_posix` option has been deprecated in favor of `run` with platform strings\n", m.name)
 	}
 
 	if ^str(r["run_windows"]) != null {
 		m.run[.windows] = str(r["run_windows"])
 		r ^= delete(r^, "run_windows")
 
-		printf("Warning: The `run_windows` option has been deprecated in favor of `run` with platform strings\n")
+		printf("%s: Warning: The `run_windows` option has been deprecated in favor of `run` with platform strings\n", m.name)
 	}
 
 	if validkey(r^, "pre_build") {
