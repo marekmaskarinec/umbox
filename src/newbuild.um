@@ -9,6 +9,17 @@ import (
 	"common.um"
 )
 
+fn addFile*(outDir: str, p1: str) {
+	p2 := filepath::join(outDir, p1)
+	os::mkdirp(filepath::dir(p2))
+	f1, err := std::fopen(p1, "rb")
+	d, err := std::freadall(f1)
+	f2, err := std::fopen(p2, "wb")
+	std::fwrite(f2, d)
+	std::fclose(f1)
+	std::fclose(f2)
+}
+
 fn shouldRebuild*(target: str, sources: []str): (bool, std::Err) {
 	if !os::isfile(target) {
 		return true, {}
@@ -33,29 +44,7 @@ fn shouldRebuild*(target: str, sources: []str): (bool, std::Err) {
 	return false, {}
 }
 
-fn run*(outDir: str): std::Err {
-	meta, err := common::getMeta("box.json")
-	if err.code != 0 {
-		return common::error(.boxJsonError, err.msg)
-	}
-	
-	if !meta.build.isValid {
-		return common::error(.boxJsonError, "no valid build structure")
-	}
-	
-	err = os::mkdirp(outDir)
-	if (err.code != 0) {
-		return err
-	}
-	
-	pre := meta.build.pre.get()
-	if pre != "" {
-		rc := std::system(pre)
-		if rc != 0 {
-			return common::error(.preBuild, sprintf("pre-build exited with code %d", rc))
-		}
-	}
-		 
+fn buildTargets(outDir: str, meta: common::Meta): std::Err {
 	cc := std::getenv("CC")
 	if cc == "" {
 		cc = "cc"
@@ -74,16 +63,61 @@ fn run*(outDir: str): std::Err {
 		}
 				  
 		if !rebuild {
+			if common::debugMode { printf("No need to rebuild %s\n", path) }
 			continue
 		}
 		
 		command := sprintf("%s -shared %s -o %s %s %s", cc, target.ldflags.get(), fullPath, target.cflags.get(), strings::join(target.sources, " "))
+		printf("%s\n", command)
 		rc := std::system(command)
 		if rc != 0 {
 			return common::error(.buildError, sprintf("build for %s exited with code %d", path, rc))
 		}
 	}
+
+	return {}
+}
+
+fn run*(outDir: str): std::Err {
+	meta, err := common::getMeta("box.json")
+	if err.code != 0 {
+		return common::error(.boxJsonError, err.msg)
+	}
 	
+	if !meta.build.isValid {
+		return common::error(.boxJsonError, "no valid build structure")
+	}
+	
+	err = os::mkdirp(outDir)
+	if err.code != 0 {
+		return err
+	}
+	
+	pre := meta.build.pre.get()
+	if pre != "" {
+		rc := std::system(pre)
+		if rc != 0 {
+			return common::error(.preBuild, sprintf("pre-build exited with code %d", rc))
+		}
+	}
+
+	err = buildTargets(outDir, meta)
+	if err.code != 0 {
+		return err
+	}
+
+	for i,f in meta.build.include {
+		if os::isfile(f) {
+			addFile(outDir, f)
+		} else if os::isdir(f) {
+			os::walk(f, fn(p: str) |outDir| {
+				addFile(outDir, p)
+			})
+		} else {
+			return common::error(.fileNotFound, f)
+		}
+	}
+
 	post := meta.build.post.get()
 	if post != "" {
 		rc := std::system(post)
