@@ -14,6 +14,8 @@ import (
 	"src/upload.um"
 
 	"umbox/args/args.um"
+	"umbox/filepath/filepath.um"
+	"umbox/tar/tar.um"
 )
 
 fn main() {
@@ -73,10 +75,16 @@ fn main() {
 		args.check()
 		common::exitif(upload::run(secret, file))
 	} else if args.mode("newbuild", "Run new experimental build") {
-		outDir := "out"
-		args.optional(&outDir, "output", "Specify output directory").short('o')
-
-		common::exitif(newbuild::run(outDir))
+		outPath := "out"
+		args.optional(&outPath, "output", "Specify output directory/archive").short('o')
+		args.check()
+		if filepath::ext(outPath) == "tar" {
+			t, err := tar::open(outPath, "w")
+			common::exitif(err)
+			common::exitif(newbuild::run(newbuild::TarOutput{t}))
+		} else {
+			common::exitif(newbuild::run(newbuild::DirOutput{outPath}))
+		}
 	} else {
 		args.usage()
 	}

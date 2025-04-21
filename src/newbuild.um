@@ -2,15 +2,27 @@
 import (
 	"std.um"
 
-	"../umbox/os/os.um"
 	"../umbox/filepath/filepath.um"
+	"../umbox/os/os.um"
 	"../umbox/strings/strings.um"
+	"../umbox/tar/tar.um"
 
 	"common.um"
 )
 
-fn addFile*(outDir: str, p1: str) {
-	p2 := filepath::join(outDir, p1)
+type Output* = interface {
+	addFile(f: str): std::Err
+	shouldRebuild(target: str, sources: []str): bool
+	close(): std::Err
+	cc(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Err
+}
+
+type DirOutput* = struct {
+	path: str
+}
+
+fn (o: ^DirOutput) addFile*(p1: str): std::Err {
+	p2 := filepath::join(o.path, p1)
 	os::mkdirp(filepath::dir(p2))
 	f1, err := std::fopen(p1, "rb")
 	d, err := std::freadall(f1)
@@ -18,33 +30,80 @@ fn addFile*(outDir: str, p1: str) {
 	std::fwrite(f2, d)
 	std::fclose(f1)
 	std::fclose(f2)
+
+	return {} // TODO
 }
 
-fn shouldRebuild*(target: str, sources: []str): (bool, std::Err) {
+fn (o: ^DirOutput) shouldRebuild*(target: str, sources: []str): bool {
+	target = filepath::join(o.path, target)
+
 	if !os::isfile(target) {
-		return true, {}
+		return true
 	}
 	
 	tstat, err := os::stat(target)
 	if err.code != 0 {
-		return false, err
+		return true
 	}
 	
 	for i in sources {
 		sstat, err := os::stat(sources[i])
 		if err.code != 0 {
-			return false, err
+			return true
 		}
 		
 		if sstat.mtime > tstat.mtime {
-			return true, {}
+			return true
 		}
 	}
 	
-	return false, {}
+	return false
 }
 
-fn buildTargets(outDir: str, meta: common::Meta): std::Err {
+fn (o: ^DirOutput) close*(): std::Err {
+	return {}
+}
+
+fn (o: ^DirOutput) cc*(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Err {
+	return f(filepath::join(o.path, file), cmd)
+}
+
+type TarOutput* = struct {
+	t: tar::Tar
+}
+
+fn (o: ^TarOutput) addFile*(f: str): std::Err {
+	o.t.addFile(f)
+	// TODO: there is an error in tar.um where Tar.addFile returns incorrect
+	// error type
+	return {}
+}
+
+fn (o: ^TarOutput) shouldRebuild*(target: str, sources: []str): bool {
+	return true
+}
+
+fn (o: ^TarOutput) close*(): std::Err {
+	err := o.t.finalize()
+	if err.code != 0 {
+		return err
+	}
+	return o.t.close()
+}
+
+// This might not be the ideal behavior since it might conflict with user intentions.
+fn (o: ^TarOutput) cc*(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Err {
+	err := f(file, cmd)
+	if err.code != 0 {
+		return err
+	}
+
+	err = o.addFile(file)
+	os::remove(file)
+	return err
+}
+
+fn buildTargets(out: Output, meta: common::Meta): std::Err {
 	cc := std::getenv("CC")
 	if cc == "" {
 		cc = "cc"
@@ -55,30 +114,30 @@ fn buildTargets(outDir: str, meta: common::Meta): std::Err {
 			printf("Warning: Only .umi files are supported, skipping %s\n", path)
 			continue
 		}
-		
-		fullPath := filepath::join(outDir, path)
-		rebuild, err := shouldRebuild(fullPath, target.sources)
-		if err.code != 0 {
-			return err
-		}
-				  
+
+		rebuild := out.shouldRebuild(path, target.sources)
 		if !rebuild {
 			if common::debugMode { printf("No need to rebuild %s\n", path) }
 			continue
 		}
-		
-		command := sprintf("%s -shared %s -o %s %s %s", cc, target.ldflags.get(), fullPath, target.cflags.get(), strings::join(target.sources, " "))
-		printf("%s\n", command)
-		rc := std::system(command)
-		if rc != 0 {
-			return common::error(.buildError, sprintf("build for %s exited with code %d", path, rc))
-		}
+
+		command := sprintf("%s -shared %s -o %%s %s %s", cc, target.ldflags.get(),
+			 target.cflags.get(), strings::join(target.sources, " "))
+		err := out.cc(path, command, {
+			cmd = sprintf(cmd, file)
+			printf("+ %s\n", cmd)
+			rc := std::system(cmd)
+			if rc != 0 {
+				return common::error(.buildError, sprintf("build for %s exited with code %d", file, rc))
+			}
+			return {}
+		})
 	}
 
 	return {}
 }
 
-fn run*(outDir: str): std::Err {
+fn run*(out: Output): std::Err {
 	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return common::error(.boxJsonError, err.msg)
@@ -87,12 +146,7 @@ fn run*(outDir: str): std::Err {
 	if !meta.build.isValid {
 		return common::error(.boxJsonError, "no valid build structure")
 	}
-	
-	err = os::mkdirp(outDir)
-	if err.code != 0 {
-		return err
-	}
-	
+
 	pre := meta.build.pre.get()
 	if pre != "" {
 		rc := std::system(pre)
@@ -101,17 +155,17 @@ fn run*(outDir: str): std::Err {
 		}
 	}
 
-	err = buildTargets(outDir, meta)
+	err = buildTargets(out, meta)
 	if err.code != 0 {
 		return err
 	}
 
 	for i,f in meta.build.include {
 		if os::isfile(f) {
-			addFile(outDir, f)
+			out.addFile(f)
 		} else if os::isdir(f) {
-			os::walk(f, fn(p: str) |outDir| {
-				addFile(outDir, p)
+			os::walk(f, fn(p: str) |out| {
+				out.addFile(p)
 			})
 		} else {
 			return common::error(.fileNotFound, f)
@@ -125,6 +179,6 @@ fn run*(outDir: str): std::Err {
 			return common::error(.postBuild, sprintf("post-build exited with code %d", rc))
 		}
 	}
-	
+
 	return {}
 }
