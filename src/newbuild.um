@@ -10,6 +10,11 @@ import (
 	"common.um"
 )
 
+type Params* = struct {
+	platformTag: bool
+	winCross: bool
+}
+
 type Output* = interface {
 	addFile(f: str): std::Err
 	shouldRebuild(target: str, sources: []str): bool
@@ -103,7 +108,42 @@ fn (o: ^TarOutput) cc*(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Er
 	return err
 }
 
-fn buildTargets(out: Output, meta: common::Meta): std::Err {
+fn tagTarget(path: str, plat: os::Platform): str {
+	suffix := ".umi"
+	switch plat {
+	case .posix: suffix = "_linux.umi"
+	case .windows: suffix = "_windows.umi"
+	case .emscripten: suffix = "_emscripten.umi"
+	}
+
+	return strings::trimsuffix(path, ".umi") + suffix
+}
+
+fn compileUMI(out: Output, cc: str, path: str, target: common::Target, plat: os::Platform, par: Params): std::Err {
+	if par.platformTag {
+		path = tagTarget(path, os::getPlatform())
+	}
+
+	rebuild := out.shouldRebuild(path, target.sources)
+	if !rebuild {
+		if common::debugMode { printf("No need to rebuild %s\n", path) }
+		return {}
+	}
+
+	command := sprintf("%s -shared %s -o %%s %s %s", cc, target.ldflags.getByPlatform(plat),
+		 target.cflags.getByPlatform(plat), strings::join(target.sources, " "))
+	return out.cc(path, command, {
+		cmd = sprintf(cmd, file)
+		printf("+ %s\n", cmd)
+		rc := std::system(cmd)
+		if rc != 0 {
+			return common::error(.buildError, sprintf("build for %s exited with code %d", file, rc))
+		}
+		return {}
+	})
+}
+
+fn buildTargets(out: Output, meta: common::Meta, par: Params): std::Err {
 	cc := std::getenv("CC")
 	if cc == "" {
 		cc = "cc"
@@ -115,29 +155,27 @@ fn buildTargets(out: Output, meta: common::Meta): std::Err {
 			continue
 		}
 
-		rebuild := out.shouldRebuild(path, target.sources)
-		if !rebuild {
-			if common::debugMode { printf("No need to rebuild %s\n", path) }
-			continue
+		err := compileUMI(out, cc, path, target, os::getPlatform(), par)
+		if err.code != 0 {
+			return err
 		}
 
-		command := sprintf("%s -shared %s -o %%s %s %s", cc, target.ldflags.get(),
-			 target.cflags.get(), strings::join(target.sources, " "))
-		err := out.cc(path, command, {
-			cmd = sprintf(cmd, file)
-			printf("+ %s\n", cmd)
-			rc := std::system(cmd)
-			if rc != 0 {
-				return common::error(.buildError, sprintf("build for %s exited with code %d", file, rc))
+		if (par.winCross) {
+			err = compileUMI(out, "x86_64-w64-mingw32-gcc", path, target, .windows, par)
+			if err.code != 0 {
+				return err
 			}
-			return {}
-		})
+		}
 	}
 
 	return {}
 }
 
-fn run*(out: Output): std::Err {
+fn run*(out: Output, par: Params): std::Err {
+	if par.winCross && os::getPlatform() != .posix {
+		return common::error(.buildError, "Cross compile for Windows only avaiable on Linux")
+	}
+
 	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return common::error(.boxJsonError, err.msg)
@@ -155,7 +193,7 @@ fn run*(out: Output): std::Err {
 		}
 	}
 
-	err = buildTargets(out, meta)
+	err = buildTargets(out, meta, par)
 	if err.code != 0 {
 		return err
 	}

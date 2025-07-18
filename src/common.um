@@ -24,6 +24,7 @@ type ErrCode* = enum {
 	postBuild
 	boxJsonError
 	buildError
+	githubApiError
 }
 
 var errStrings: []str = []str{
@@ -40,7 +41,8 @@ var errStrings: []str = []str{
 	"pre build failed",
 	"post build failed",
 	"box.json error",
-	"build error"
+	"build error",
+	"github API error"
 }
 
 fn error*(ec: ErrCode, msg: str = ""): std::Err {
@@ -203,12 +205,16 @@ fn (b: ^FileBox) encode*(): str {
 
 type PlatString* = map[os::Platform]str
 
-fn (ps: ^PlatString) get*(): str {
-	if validkey(ps^, os::getPlatform()) {
-		return ps[os::getPlatform()]
+fn (ps: ^PlatString) getByPlatform*(plat: os::Platform): str {
+	if validkey(ps^, plat) {
+		return ps[plat]
 	}
 	
 	return ps[.unknown]
+}
+
+fn (ps: ^PlatString) get*(): str {
+	return ps.getByPlatform(os::getPlatform())
 }
 
 type (

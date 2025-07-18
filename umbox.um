@@ -76,14 +76,17 @@ fn main() {
 		common::exitif(upload::run(secret, file))
 	} else if args.mode("newbuild", "Run new experimental build") {
 		outPath := "out"
+		params := newbuild::Params{}
 		args.optional(&outPath, "output", "Specify output directory/archive").short('o')
+		args.optional(&params.platformTag, "plat", "Include platform tags in UMI names")
+		args.optional(&params.winCross, "win-cross", "Cross compile for Windows")
 		args.check()
 		if filepath::ext(outPath) == "tar" {
 			t, err := tar::open(outPath, "w")
 			common::exitif(err)
-			common::exitif(newbuild::run(newbuild::TarOutput{t}))
+			common::exitif(newbuild::run(newbuild::TarOutput{t}, params))
 		} else {
-			common::exitif(newbuild::run(newbuild::DirOutput{outPath}))
+			common::exitif(newbuild::run(newbuild::DirOutput{outPath}, params))
 		}
 	} else {
 		args.usage()
