@@ -70,7 +70,10 @@ fn (o: ^DirOutput) close*(): std::Err {
 }
 
 fn (o: ^DirOutput) cc*(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Err {
-	return f(filepath::join(o.path, file), cmd)
+	file = filepath::join(o.path, file)
+	printf("file: %s\n", filepath::dir(file))
+	os::mkdirp(filepath::dir(file))
+	return f(file, cmd)
 }
 
 type TarOutput* = struct {

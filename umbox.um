@@ -12,6 +12,7 @@ import (
 	"src/search.um"
 	"src/update.um"
 	"src/upload.um"
+	"src/gitupdate.um"
 
 	"umbox/args/args.um"
 	"umbox/filepath/filepath.um"
@@ -88,6 +89,8 @@ fn main() {
 		} else {
 			common::exitif(newbuild::run(newbuild::DirOutput{outPath}, params))
 		}
+	} else if args.mode("gitupdate", "Update packages from git source (experimental)") {
+		common::exitif(gitupdate::run())
 	} else {
 		args.usage()
 	}

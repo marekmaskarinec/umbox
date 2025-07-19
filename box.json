@@ -23,5 +23,14 @@
 	"run": {
 		"posix": "./umbox/umka/umka umbox.um",
 		"windows": ".\umbox\umka\umka.exe umbox.um"
+	},
+	"build": {
+		"targets": {
+			"src/gitupdate.umi": {
+				"sources": "src/gitupdate.c",
+				"cflags": "-Wall -Iumbox/umka",
+				"ldflags": "-lgit2"
+			}
+		}
 	}
 }

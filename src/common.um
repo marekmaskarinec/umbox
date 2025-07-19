@@ -24,7 +24,7 @@ type ErrCode* = enum {
 	postBuild
 	boxJsonError
 	buildError
-	githubApiError
+	gitError
 }
 
 var errStrings: []str = []str{
@@ -42,7 +42,7 @@ var errStrings: []str = []str{
 	"post build failed",
 	"box.json error",
 	"build error",
-	"github API error"
+	"git error"
 }
 
 fn error*(ec: ErrCode, msg: str = ""): std::Err {
