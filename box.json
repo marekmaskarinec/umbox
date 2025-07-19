@@ -8,12 +8,10 @@
 	"source": "https://github.com/marekmaskarinec/umbox",
 	"readme": "README.md",
 	"dependencies": [
-		"http",
 		"filepath",
 		"json",
 		"jsonenc",
 		"os",
-		"tar",
 		"strings",
 		"umka",
 		"args"

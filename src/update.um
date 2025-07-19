@@ -1,155 +1,119 @@
 
 import (
-	"../umbox/os/os.um"	
-	"../umbox/json/json.um"
 	"../umbox/filepath/filepath.um"
-	"../umbox/tar/tar.um"
-	"../umbox/jsonenc/jsonenc.um"
 	"../umbox/strings/strings.um"
-
+	"../umbox/os/os.um"
 	"std.um"
+
+	"build.um"
 	"common.um"
 )
 
-fn fetchDeps(deps: []common::Box, versions: ^map[str]str): std::Err
-
-var (
-	copyDeps: bool = false
-)
-
-fn copyFile(p1, p2: str) {
-	f1, err := std::fopen(p1, "rb")
-	d, err := std::freadall(f1)
-	f2, err := std::fopen(p2, "wb")
-	std::fwrite(f2, d)
-	std::fclose(f1)
-	std::fclose(f2)
+type Dep* = struct {
+	full: str
+	url: str
+	ref: str
+	name: str
+	canonical: str
+	srcPath: str
+	dstPath: str
+	buildOnly: bool
 }
 
-fn fetchDep(dep: common::Box, versions: ^map[str]str): std::Err {
-	if !dep.exists() {
-		return common::error(.boxNotFound, dep.encode())
-	}
-	
-	os::mkdirp(filepath::join("umbox", dep.getName()))
+fn git_init()
+fn git_strerror(): str
+fn git_updaterepo(dep, ref, dir: str): int
+fn fetchFor(deps: []Dep): std::Err
 
-	// fetch and extract box.tar
-	d, err := dep.download("box.tar")
-	if err.code != 0 {
-		return err
-	}
-	tf, err := tar::openBytes([]uint8(d))
-	if err.code != 0 {
-		return err
-	}
-	
-	err = tf.extract(filepath::join("umbox", dep.getName(), ""))
-	if err.code != 0 {
-		return err
-	}
-	
-	// Fetch dependencies
-	meta, err := common::getMeta(filepath::join("umbox", dep.getName(), "box.json"))
-	if err.code != 0 {
-		err.msg = filepath::join("umbox", dep.getName(), "box.json") + ": " + err.msg
-		return err
-	}
+var fetched, built: map[str]bool
 
-	err = fetchDeps(meta.dependencies, versions)
-	if err.code != 0 {
-		return err
-	}
+fn link(target, link: str): std::Err {
+	printf("link %s -> %s\n", link, target)
 
-	// Create symlinks for dependencies
-	os::mkdirp(filepath::join("umbox", dep.getName(), "umbox"))
-	for i,d in meta.dependencies {
-		if copyDeps {
-			os::walk(filepath::join("umbox", d.getName()), |dep, d| {
-				file2 := filepath::join(
-					"umbox", dep.getName(), "umbox", d.getName(),
-					strings::trimprefix(file, filepath::join("umbox", d.getName()))
-				)
-
-				os::mkdirp(filepath::dir(file2))
-				copyFile(file, file2)
-			}, { excludeDirs: true })
-		} else {
-			err := os::link(filepath::join("..", "..", d.getName()), filepath::join("umbox", dep.getName(), "umbox", d.getName()))
-			if err.code != 0 && os::getPlatform() == os::Platform.windows {
-				std::system("mklink /j " + filepath::join("umbox", dep.getName(), "umbox", d.getName()) + " " + filepath::join("umbox", d.getName()))
-			}
-		}
-	}
-
-	{
-		d, err := dep.download("version")
-		if err.code != 0 {
-			return err
-		}
-		versions[dep.getName()] = str([]char(d))
-	}
-
-	return {}
-}
-
-fn fetchDeps(deps: []common::Box, versions: ^map[str]str): std::Err {
-	for i,dep in deps {
-		// If the dependency doesn't exist, fetch it.
-		if !os::isdir(filepath::join("umbox", dep.getName())) {
-			fprintf(std::stderr(), "Downloading %s...\n", dep.getName())
-			err := fetchDep(dep, versions)
-			if err.code != 0 {
-				return err
-			}
-			continue
-		}
-
-		// If the dependency doesn't have a known version, fetch it.
-		if !validkey(versions^, dep.getName()) {
-			fprintf(std::stderr(), "Downloading %s...\n", dep.getName())
-			err := fetchDep(dep, versions)
-			if err.code != 0 {
-				return err
-			}
-			continue
-		}
-
-		// Check for new versions.
-		{
-			d, err := dep.download("version")
-			if err.code != 0 {
-				return err
-			}
-			if versions[dep.getName()] != str([]char(d)) {
-				fprintf(std::stderr(), "Updating %s...\n", dep.getName())
-				err = fetchDep(dep, versions)
-				if err.code != 0 {
-					return err
-				}
-				continue
-			}
-		}
-	}
-
-	return {}
-}
-
-fn touchDep(dep: str, touched: ^map[str]bool): std::Err {
-	if validkey(touched^, dep) {
+	os::mkdirp(filepath::dir(link))
+	err := os::link(target, link)
+	if err.code != 0 && os::getPlatform() == os::Platform.windows {
+		std::system("mklink /j " + target + " " + link)
 		return {}
 	}
 
-	touched[dep] = true
+	if err.code == 17 {
+		return {}
+	}
+	return err
+}
 
-	meta, err := common::getMeta(filepath::join("umbox", dep, "box.json"))
+fn getDeps(path: str): ([]Dep, std::Err) {
+	meta, err := common::getMeta(filepath::join(path, "box.json"))
 	if err.code != 0 {
-		err.msg = filepath::join("umbox", dep, "box.json") + ": " + err.msg
+		return {}, common::error(.boxJsonError, err.msg)
+	}
+
+	deps := []Dep{}
+	src := []any{}
+
+	if a := ^[]any(meta.others["deps"]); a != null {
+		src = a^
+	} else {
+		printf("warning: invalid or missing deps field\n")
+	}
+
+	buildCut := len(src)
+
+	if a := ^[]any(meta.others["bdeps"]); a != null {
+		src = append(src, a^)
+	}
+
+	for i,a in src {
+		if ^str(a) == null {
+			return {}, common::error(.boxJsonError, sprintf("dependency '%v' is not a string", a))
+		}
+
+		d := Dep{}
+		d.full = str(a)
+		split := strings::split(d.full, "@")
+		if len(split) < 2 {
+			return {}, common::error(.boxJsonError, sprintf("invalid dependency '%s'", d.full))
+		}
+		d.url = strings::join(slice(split, 0, len(split) - 1), "@")
+		d.ref = split[len(split) - 1]
+		d.canonical = strings::replace(d.full, "/", "_")
+		d.name = filepath::file(d.url)
+		d.srcPath = filepath::join("umbox", "gitsrc", d.canonical)
+		d.dstPath = filepath::join("umbox", "gitdst", d.canonical)
+		d.buildOnly = i >= buildCut
+
+		deps = append(deps, d)
+	}
+	
+	return deps, {}
+}
+
+fn (d: ^Dep) fetch(): std::Err {
+	if fetched[d.full] {
+		return {}
+	}
+
+	os::mkdirp(d.srcPath)
+	printf("Fetch %s\n", d.full)
+	if ec := git_updaterepo(d.url, d.ref, d.srcPath); ec != 0 {
+		return common::error(.gitError, git_strerror())
+	}
+
+	fetched[d.full] = true
+
+	deps, err := getDeps(d.srcPath)
+	if err.code != 0 {
 		return err
 	}
 
-	for i, dep in meta.dependencies {
-		err = touchDep(dep.getName(), touched)
-		if err.code != 0 {
+	return fetchFor(deps)
+}
+
+fn fetchFor(deps: []Dep): std::Err {
+	os::mkdirp("umbox")
+	for i,d in deps {
+		if err := d.fetch(); err.code != 0 {
 			return err
 		}
 	}
@@ -157,75 +121,108 @@ fn touchDep(dep: str, touched: ^map[str]bool): std::Err {
 	return {}
 }
 
-fn run*(copyDeps: bool = false): std::Err {
-	meta, err := common::getMeta("box.json")
-	if err.code != 0 {
-		return common::error(.boxJsonError, err.msg)
-	}
-	
-	os::mkdirp("umbox")
-
-	versions := map[str]str{}
-	if os::isfile(filepath::join("umbox", "versions.json")) {
-		f := std::fopen(filepath::join("umbox", "versions.json"), "r").item0
-		r := map[str]any(json::parse(str(std::freadall(f).item0)))
-		std::fclose(f)
-		for k,v in r {
-			versions[k] = str(v)
-		}
+fn (d: ^Dep) build(): std::Err {
+	if built[d.full] {
+		return {}
 	}
 
-	err = fetchDeps(meta.dependencies, &versions)
+	cwd, err := os::getCwd()
 	if err.code != 0 {
 		return err
 	}
 
-	touched := map[str]bool{}
-	for i,dep in meta.dependencies {
-		err = touchDep(dep.getName(), &touched)
+	err = os::chdir(d.srcPath)
+	if err.code != 0 {
+		return err
+	}
+
+	out := build::DirOutput{ filepath::join(cwd, d.dstPath) }
+	err = build::run(out, {})
+	if err.code != 0 {
+		return err
+	}
+
+	err = os::chdir(cwd)
+	if err.code != 0 {
+		return err
+	}
+
+	built[d.full] = true
+
+	return {}
+}
+
+fn buildFor(deps: []Dep): std::Err {
+	for i,d in deps {
+		child_deps, err := getDeps(d.srcPath)
+		if err.code != 0 {
+			return err
+		}
+
+		if err := buildFor(child_deps); err.code != 0 {
+			return err
+		}
+
+		for j,cd in child_deps {
+			if !cd.buildOnly {
+				continue
+			}
+
+			err := link(
+				filepath::join("..", "..", "gitdst", cd.canonical),
+				filepath::join(d.srcPath, "umbox", cd.name))
+			if err.code != 0 {
+				return err
+			}
+		}
+
+		if err := d.build(); err.code != 0 {
+			return err
+		}
+
+		for j,cd in child_deps {
+			if cd.buildOnly {
+				continue
+			}
+
+			err := link(
+				filepath::join("..", "..", cd.canonical),
+				filepath::join(d.dstPath, "umbox", cd.name))
+			if err.code != 0 {
+				return err
+			}
+		}
+	}
+
+	return {}
+}
+
+fn run*(baseDir: str = ""): std::Err {
+	git_init()
+
+	deps, err := getDeps("")
+	if err.code != 0 {
+		return err
+	}
+
+	err = fetchFor(deps)
+	if err.code != 0 {
+		return err
+	}
+
+	err = buildFor(deps)
+	if err.code != 0 {
+		return err
+	}
+	
+	for i,d in deps {
+		err = link(
+			filepath::join("gitdst", d.canonical),
+			filepath::join(baseDir, "umbox", d.name))
 		if err.code != 0 {
 			return err
 		}
 	}
-		
-	enc := jsonenc::mk(true)
-	enc.startObject()
-	for k,v in versions {
-		if touched[k] {
-			enc.putKey(k)
-			enc.putVal(v)
-		}
-	}
-	enc.endObject()
-
-	f := std::fopen(filepath::join("umbox", "versions.json"), "w").item0
-	fprintf(f, "%s", enc.toStr())
-	std::fclose(f)
 	
-	ls, _ := os::listdir("umbox")
-	for i,d in ls {
-		if d == "versions.json" || d == "." || d == ".." {
-			continue
-		}
-
-		if !touched[d] {
-			fprintf(std::stderr(), "Removing %s...\n", d)
-			var err: std::Err
-			errp := &err
-			os::walk(filepath::join("umbox", d), fn(path: str) |d, errp| {
-				err := os::remove(path)
-				if err.code != 0 {
-					errp ^= err
-				}
-			}, { skipLinks: true })
-
-			if err.code != 0 {
-				return err
-			}
-			
-			os::remove(filepath::join("umbox", d))
-		}
-	}
-
 	return {}
 }

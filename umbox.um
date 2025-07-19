@@ -4,19 +4,11 @@ import (
 	"src/build.um"
 	"src/common.um"
 	"src/init.um"
-	"src/install.um"
-	"src/newbuild.um"
-	"src/register.um"
-	"src/remove.um"
 	"src/run.um"
-	"src/search.um"
 	"src/update.um"
-	"src/upload.um"
-	"src/gitupdate.um"
 
 	"umbox/args/args.um"
 	"umbox/filepath/filepath.um"
-	"umbox/tar/tar.um"
 )
 
 fn main() {
@@ -26,71 +18,28 @@ fn main() {
 	args.optional(&common::serverUrl, "url", "Specify server URL").short('u')
 	args.help()
 
-	if args.mode("build", "Build a box.tar") {
-		output := "box.tar"
-		args.optional(&output, "output", "Specify output path").short('o')
-		args.check()
-		common::exitif(build::run(output))
-	} else if args.mode("init", "Initialize a box") {
+	if args.mode("init", "Initialize a box") {
 		path := ""
 		preset := ""
 		args.optionalNext(&path, "path")
-		args.optional(&preset, "preset", "Specify preset name").short('p')
 		args.check()
-		common::exitif(init::run(path, preset))
-	} else if args.mode("install", "Install a box") {
-		box := ""
-		args.requiredNext(&box, "box")
-		args.check()
-		common::exitif(install::run(box))
-	} else if args.mode("remove", "Remove a box") {
-		box := ""
-		args.requiredNext(&box, "box")
-		args.check()
-		common::exitif(remove::run(box))
+		common::exitif(init::run(path))
 	} else if args.mode("run", "Run a command inside the UmBox env") {
 		cmd := []str{}
 		args.optionalNext(&cmd, "command")
 		args.check()
 		common::exitif(run::run(cmd))
-	} else if args.mode("search", "Search for a box online") {
-		query := ""
-		args.requiredNext(&query, "search query")
-		args.check()
-		common::exitif(search::run(query))
-	} else if args.mode("update", "Update all dependencies") {
-		copyDeps := false
-		args.optional(&copyDeps, "copy", "Copy dependencies instead of linking").short('c')
-		args.check()
-		common::exitif(update::run(copyDeps))
-	} else if args.mode("register", "Register a box") {
-		name := ""
-		args.requiredNext(&name, "Box name")
-		args.check()
-		common::exitif(register::run(name))
-	} else if args.mode("upload", "Upload data to an online box") {
-		secret := ""
-		args.requiredNext(&secret, "Box secret")
-		file := "box.tar"
-		args.optionalNext(&file, "File to upload")
-		args.check()
-		common::exitif(upload::run(secret, file))
-	} else if args.mode("newbuild", "Run new experimental build") {
+	} else if args.mode("build", "Build the box") {
 		outPath := "out"
-		params := newbuild::Params{}
+		params := build::Params{}
 		args.optional(&outPath, "output", "Specify output directory/archive").short('o')
 		args.optional(&params.platformTag, "plat", "Include platform tags in UMI names")
 		args.optional(&params.winCross, "win-cross", "Cross compile for Windows")
 		args.check()
-		if filepath::ext(outPath) == "tar" {
-			t, err := tar::open(outPath, "w")
-			common::exitif(err)
-			common::exitif(newbuild::run(newbuild::TarOutput{t}, params))
-		} else {
-			common::exitif(newbuild::run(newbuild::DirOutput{outPath}, params))
-		}
-	} else if args.mode("gitupdate", "Update packages from git source (experimental)") {
-		common::exitif(gitupdate::run())
+		common::exitif(build::run(build::DirOutput{outPath}, params))
+	} else if args.mode("update", "Update packages from git source") {
+		args.check()
+		common::exitif(update::run())
 	} else {
 		args.usage()
 	}

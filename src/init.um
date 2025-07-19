@@ -4,39 +4,11 @@ import (
 	"update.um"
 	"std.um"
         
-	"../umbox/tar/tar.um"
 	"../umbox/filepath/filepath.um"
 	"../umbox/os/os.um"
 )
 
-fn downloadPreset(box: common::Box): (common::Meta, std::Err) {
-	if !box.exists("init.tar") {
-		return {}, common::error(.fileNotFound, "init.tar")
-	}
-
-	dat, err := box.download("init.tar")
-	if err.code != 0{
-		return {}, err
-	}
-
-	tf, err := tar::openBytes([]uint8(dat))
-	if err.code != 0 {
-		return {}, err
-	}
-
-	err = tf.extract(".")
-	if err.code != 0 {
-		return {}, err
-	}
-
-	m, err := common::getMeta("box.json")
-	if err.code != 0 {
-		return m, err
-	}
-	return m, {}
-}
-
-fn run*(name: str, presetStr: str): std::Err {
+fn run*(name: str): std::Err {
 	if name != "" && name != "." {
 		if os::isfile(name) {
 			return common::error(.failed, "file already exists")
@@ -57,24 +29,7 @@ fn run*(name: str, presetStr: str): std::Err {
 		return common::error(.failed, "directory already contains a box.json")
 	}
 
-	m := common::Meta{
-		version: "v0.1.0",
-		readme: "README.md"
-	}
-
-	if presetStr != "" {
-		preset := common::parseDep(presetStr)
-		if !preset.exists() {
-			fprintf(std::stderr(), "Box '%s' doesn't exist\n", preset.encode())
-			return {}
-		}
-
-		var err: std::Err
-		m, err = downloadPreset(preset)
-		if err.code != 0 {
-			return err
-		}
-	}
+	m := common::Meta{ }
 
 	name, err := os::getCwd()
 	m.name = filepath::file(name)

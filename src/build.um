@@ -1,61 +1,187 @@
 
 import (
 	"std.um"
-	"common.um"
-	
+
+	"../umbox/filepath/filepath.um"
 	"../umbox/os/os.um"
-	"../umbox/tar/tar.um"
+	"../umbox/strings/strings.um"
+
+	"common.um"
 )
 
-fn run*(output: str): std::Err {
-	meta, err := common::getMeta("box.json") 
+type Params* = struct {
+	platformTag: bool
+	winCross: bool
+}
+
+type Output* = interface {
+	addFile(f: str): std::Err
+	shouldRebuild(target: str, sources: []str): bool
+	close(): std::Err
+	cc(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Err
+}
+
+type DirOutput* = struct {
+	path: str
+}
+
+fn (o: ^DirOutput) addFile*(p1: str): std::Err {
+	p2 := filepath::join(o.path, p1)
+	os::mkdirp(filepath::dir(p2))
+	f1, err := std::fopen(p1, "rb")
+	d, err := std::freadall(f1)
+	f2, err := std::fopen(p2, "wb")
+	std::fwrite(f2, d)
+	std::fclose(f1)
+	std::fclose(f2)
+
+	return {} // TODO
+}
+
+fn (o: ^DirOutput) shouldRebuild*(target: str, sources: []str): bool {
+	target = filepath::join(o.path, target)
+
+	if !os::isfile(target) {
+		return true
+	}
+	
+	tstat, err := os::stat(target)
+	if err.code != 0 {
+		return true
+	}
+	
+	for i in sources {
+		sstat, err := os::stat(sources[i])
+		if err.code != 0 {
+			return true
+		}
+		
+		if sstat.mtime > tstat.mtime {
+			return true
+		}
+	}
+	
+	return false
+}
+
+fn (o: ^DirOutput) close*(): std::Err {
+	return {}
+}
+
+fn (o: ^DirOutput) cc*(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Err {
+	file = filepath::join(o.path, file)
+	printf("file: %s\n", filepath::dir(file))
+	os::mkdirp(filepath::dir(file))
+	return f(file, cmd)
+}
+
+fn tagTarget(path: str, plat: os::Platform): str {
+	suffix := ".umi"
+	switch plat {
+	case .posix: suffix = "_linux.umi"
+	case .windows: suffix = "_windows.umi"
+	case .emscripten: suffix = "_emscripten.umi"
+	}
+
+	return strings::trimsuffix(path, ".umi") + suffix
+}
+
+fn compileUMI(out: Output, cc: str, path: str, target: common::Target, plat: os::Platform, par: Params): std::Err {
+	if par.platformTag {
+		path = tagTarget(path, os::getPlatform())
+	}
+
+	rebuild := out.shouldRebuild(path, target.sources)
+	if !rebuild {
+		if common::debugMode { printf("No need to rebuild %s\n", path) }
+		return {}
+	}
+
+	command := sprintf("%s -shared %s -o %%s %s %s", cc, target.ldflags.getByPlatform(plat),
+		 target.cflags.getByPlatform(plat), strings::join(target.sources, " "))
+	return out.cc(path, command, {
+		cmd = sprintf(cmd, file)
+		printf("+ %s\n", cmd)
+		rc := std::system(cmd)
+		if rc != 0 {
+			return common::error(.buildError, sprintf("build for %s exited with code %d", file, rc))
+		}
+		return {}
+	})
+}
+
+fn buildTargets(out: Output, meta: common::Meta, par: Params): std::Err {
+	cc := std::getenv("CC")
+	if cc == "" {
+		cc = "cc"
+	}
+
+	for path,target in meta.build.targets {
+		if filepath::ext(path) != "umi" {
+			printf("Warning: Only .umi files are supported, skipping %s\n", path)
+			continue
+		}
+
+		err := compileUMI(out, cc, path, target, os::getPlatform(), par)
+		if err.code != 0 {
+			return err
+		}
+
+		if (par.winCross) {
+			err = compileUMI(out, "x86_64-w64-mingw32-gcc", path, target, .windows, par)
+			if err.code != 0 {
+				return err
+			}
+		}
+	}
+
+	return {}
+}
+
+fn run*(out: Output, par: Params): std::Err {
+	if par.winCross && os::getPlatform() != .posix {
+		return common::error(.buildError, "Cross compile for Windows only avaiable on Linux")
+	}
+
+	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return common::error(.boxJsonError, err.msg)
 	}
 	
-	if len(meta.preBuild) > 0 {
-		code := std::system(meta.preBuild.get())
+	if !meta.build.isValid {
+		return common::error(.boxJsonError, "no valid build structure")
+	}
 
-		if code != 0 {
-			return common::error(.preBuild, std::itoa(code))
+	pre := meta.build.pre.get()
+	if pre != "" {
+		rc := std::system(pre)
+		if rc != 0 {
+			return common::error(.command, sprintf("pre-build exited with code %d", rc))
 		}
 	}
-	
-	t, err := tar::open(output, "w")
+
+	err = buildTargets(out, meta, par)
 	if err.code != 0 {
 		return err
 	}
-	
-	t.addFile("box.json")
-	if len(meta.readme) > 0 {
-		t.addFile(meta.readme)
-	}
-	
-	for i,f in meta.include {
+
+	for i,f in meta.build.include {
 		if os::isfile(f) {
-			t.addFile(f)
-		} else {
-			os::walk(f, fn(p: str) |t| {
-				t.addFile(p)
+			out.addFile(f)
+		} else if os::isdir(f) {
+			os::walk(f, fn(p: str) |out| {
+				out.addFile(p)
 			})
+		} else {
+			return common::error(.fileNotFound, f)
 		}
 	}
-	
-	err = t.finalize()
-	if err.code != 0 {
-		return err
-	}
-	
-	err = t.close()
-	if err.code != 0 {
-		return err
-	}
-	
-	if len(meta.postBuild) > 0 {
-		code := std::system(meta.postBuild.get())
 
-		if code != 0 {
-			return common::error(.postBuild, std::itoa(code))
+	post := meta.build.post.get()
+	if post != "" {
+		rc := std::system(post)
+		if rc != 0 {
+			return common::error(.command, sprintf("post-build exited with code %d", rc))
 		}
 	}
 

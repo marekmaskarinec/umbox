@@ -1,48 +1,38 @@
 
 import (
 	"std.um"
-	"../umbox/http/http.um"
 	"../umbox/json/json.um"
 	"../umbox/jsonenc/jsonenc.um"
 	"../umbox/os/os.um"
 	"../umbox/strings/strings.um"
-	"../umbox/tar/tar.um"
 )
 
 type ErrCode* = enum {
 	ok
 	failed
 	cli
-	secret
-	box
-	request
 	json
 	boxNotFound
 	fileNotFound
 	jsonKeyNotFound
-	preBuild
-	postBuild
 	boxJsonError
 	buildError
 	gitError
+	command
 }
 
 var errStrings: []str = []str{
 	"not an error",
 	"failed",
 	"invalid cli arguments",
-	"bad token",
-	"invalid box syntax",
-	"HTTP request failed",
 	"json error",
 	"box not found",
 	"file not found",
 	"json key not found",
-	"pre build failed",
-	"post build failed",
 	"box.json error",
 	"build error",
-	"git error"
+	"git error",
+	"external command error"
 }
 
 fn error*(ec: ErrCode, msg: str = ""): std::Err {
@@ -67,140 +57,6 @@ fn exitif*(e: std::Err) {
 
 	fprintf(std::stderr(), "UmBox error (%d): %s\n", e.code, e.msg)
 	exit(1)
-}
-
-type Box* = interface {
-	exists(file: str = "version"): bool
-	download(file: str = "box.tar"): ([]char, std::Err)
-	encode(): str
-	getName(): str
-}
-
-type HTTPBox* = struct {
-	name: str
-	url: str
-}
-
-fn (b: ^HTTPBox) getName*(): str {
-	return b.name
-}
-
-fn (b: ^HTTPBox) exists*(file: str = "version"): bool {
-	if debugMode {
-		printf("CHECK %s/%s@%s\n", b.name, file, b.url)
-	}
-
-	resp, err := http::request({
-		method: .get,
-		url: sprintf("%s/api/package/%s/download/%s", b.url, b.name, file),
-		headers: { "User-Agent": "umbox-cli" }
-	})
-
-	return err.code == 0 && resp.status == 200
-}
-
-fn (b: ^HTTPBox) download*(file: str = "box.tar"): ([]char, std::Err) {
-	if debugMode {
-		printf("DL %s/%s@%s\n", b.name, file, b.url)
-	}
-
-	resp, err := http::request({
-		method: .get,
-		url: sprintf("%s/api/package/%s/download/%s", b.url, b.name, file),
-		headers: { "User-Agent": "umbox-cli" }
-	})
-
-	if err.code != 0 {
-		return {}, err
-	}
-
-	if resp.status != 200 {
-		return resp.body, error(.request, resp.body)
-	}
-
-	return resp.body, {}
-}
-
-fn (b: ^HTTPBox) encode*(): str {
-	if b.url != serverUrl {
-		return sprintf("%s@%s", b.name, b.url)
-	}
-	
-	return b.name
-}
-
-type FileBox* = struct {
-	name: str
-	path: str
-	handle: tar::Tar
-}
-
-fn (b: ^FileBox) open(): std::Err {
-	var err: std::Err
-	b.handle, err = tar::open(b.path, "rb")
-
-	return err
-}
-
-fn (b: ^FileBox) getName*(): str {
-	return b.name
-}
-
-fn (b: ^FileBox) exists*(file: str = "version"): bool {
-	if file == "version" {
-		return os::isfile(b.path)
-	}
-
-	if b.handle._ == null {
-		if err := b.open(); err.code != 0 {
-			return false
-		}
-	}
-	
-	dat, err := b.handle.read(file)
-	return err.code == 0
-}
-
-fn (b: ^FileBox) download*(file: str = "box.tar"): ([]char, std::Err) {
-	if file == "box.tar" {
-		f, err := std::fopen(b.path, "rb")
-		if err.code != 0 {
-			return {}, err
-		}
-		d, err := std::freadall(f)
-		if err.code != 0 {
-			return {}, err
-		}
-		std::fclose(f)
-
-		return d, {}
-	}
-	
-	if file == "version" {
-		sb, err := os::stat(b.path)
-		if err.code != 0 {
-			return {}, err
-		}
-		
-		return []char(std::itoa(sb.mtime)), {}
-	}
-
-	if b.handle._ == null {
-		if err := b.open(); err.code != 0 {
-			return {}, err
-		}
-	}
-
-	dat, err := b.handle.read(file)
-	if err.code != 0 {
-		return {}, err
-	}
-	
-	return dat, {}
-}
-
-fn (b: ^FileBox) encode*(): str {
-	return sprintf("%s@file://%s", b.name, b.path)
 }
 
 type PlatString* = map[os::Platform]str
@@ -235,18 +91,11 @@ type (
 
 type Meta* = struct {
 	name: str
-	version: str
 	author: str
-	license: str
 	description: str
-	readme: str
 	source: str
 	homepage: str
-	dependencies: []Box
-	include: []str
 	run: PlatString
-	preBuild: PlatString
-	postBuild: PlatString
 	others: map[str]any
 	build: Build
 }
@@ -284,22 +133,8 @@ fn (m: ^Meta) toJSON*(): str {
 
 	enc.startObject()
 		enc.putKey("name"); enc.putVal(m.name)
-		enc.putKey("version"); enc.putVal(m.version)
 		enc.putKey("author"); enc.putVal(m.author)
-		enc.putKey("license"); enc.putVal(m.license)
 		enc.putKey("description"); enc.putVal(m.description)
-		enc.putKey("readme"); enc.putVal(m.readme)
-		enc.putKey("dependencies"); enc.startArray()
-			for i,v in m.dependencies {
-				enc.putVal(v.encode())
-			}
-		enc.endArray()
-			
-		enc.putKey("include"); enc.startArray()
-			for i,v in m.include {
-				enc.putVal(v)
-			}
-		enc.endArray()
 
 		if len(m.source) > 0 {
 			enc.putKey("source"); enc.putVal(m.source)
@@ -313,14 +148,6 @@ fn (m: ^Meta) toJSON*(): str {
 			enc.putKey("run"); putPlatString(&enc, m.run)
 		}
 
-		if len(m.preBuild) > 0 {
-			enc.putKey("pre_build"); putPlatString(&enc, m.preBuild)
-		}
-
-		if len(m.postBuild) > 0 {
-			enc.putKey("post_build"); putPlatString(&enc, m.postBuild)
-		}
-
 		if len(keys(m.others)) > 0 {
 			for k,v in m.others {
 				if valid(v) {
@@ -332,33 +159,6 @@ fn (m: ^Meta) toJSON*(): str {
 	enc.endObject()
 
 	return enc.toStr()
-}
-
-fn parseDep*(dep: str): Box {
-	if !strings::contains(dep, "@") {
-		return HTTPBox{
-			name: dep,
-			url: serverUrl
-		}
-	}
-	
-	sp := strings::split(dep, "@")
-	name := sp[0]
-	source := sp[1]
-	
-	if strings::has_prefix(source, "http://") || strings::has_prefix(source, "https://") {
-		return HTTPBox{
-			name: name,
-			url: source
-		}
-	} else if strings::has_prefix(source, "file://") {
-		return FileBox{
-			name: name,
-			path: strings::trimprefix(source, "file://")
-		}
-	}
-
-	return null
 }
 
 fn getPlatString(o: any): (PlatString, std::Err) {
@@ -412,10 +212,6 @@ fn parseBuild*(o: map[str]any): (Build, std::Err) {
 		if err.code != 0 {
 			return {}, err
 		}
-	}
-	
-	if ^[]any(o["include"]) != null {
-		b.include = []str([]any(o["include"]))
 	}
 	
 	if ^map[str]any(o["targets"]) != null {
@@ -485,13 +281,6 @@ fn getMeta*(path: str): (Meta, std::Err) {
 		return {}, error(.jsonKeyNotFound, "name")
 	}
 	
-	if ^str(r["version"]) != null {
-		m.version = str(r["version"])
-		r ^= delete(r^, "version")
-	} else {
-		return {}, error(.jsonKeyNotFound, "version")
-	}
-	
 	if ^str(r["author"]) != null {
 		m.author = str(r["author"])
 		r ^= delete(r^, "author")
@@ -499,25 +288,11 @@ fn getMeta*(path: str): (Meta, std::Err) {
 		return {}, error(.jsonKeyNotFound, "author")
 	}
 
-	if ^str(r["license"]) != null {
-		m.license = str(r["license"])
-		r ^= delete(r^, "license")
-	} else {
-		return {}, error(.jsonKeyNotFound, "license")
-	}
-
 	if ^str(r["description"]) != null {
 		m.description = str(r["description"])
 		r ^= delete(r^, "description")
 	} else {
 		return {}, error(.jsonKeyNotFound, "description")
-	}
-
-	if ^str(r["readme"]) != null {
-		m.readme = str(r["readme"])
-		r ^= delete(r^, "readme")
-	} else {
-		return {}, error(.jsonKeyNotFound, "readme")
 	}
 
 	if ^str(r["source"]) != null {
@@ -530,33 +305,6 @@ fn getMeta*(path: str): (Meta, std::Err) {
 		r ^= delete(r^, "homepage")
 	}
 
-	if ^str(r["link"]) != null {
-		m.source = str(r["link"])
-		m.homepage = str(r["link"])
-		printf("%s: Warning: The `link` option has been deprecated in favor of `source` and `homepage`\n", m.name)
-		r ^= delete(r^, "link")
-	}
-
-	if ^[]any(r["dependencies"]) != null {
-		m.dependencies = make([]Box, len([]any(r["dependencies"])))
-		for i, v in []any(r["dependencies"]) {
-			m.dependencies[i] = parseDep(str(v))
-			if !valid(m.dependencies[i]) {
-				return {}, error(.box, str(v))
-			}
-		}
-		r ^= delete(r^, "dependencies")
-	} else {
-		return {}, error(.jsonKeyNotFound, "dependencies")
-	}
-
-	if ^[]any(r["include"]) != null {
-		m.include = []str([]any(r["include"]))
-		r ^= delete(r^, "include")
-	} else {
-		return {}, error(.jsonKeyNotFound, "include")
-	}
-
 	if validkey(r^, "run") {
 		var err: std::Err
 		m.run, err = getPlatString(r["run"])
@@ -564,38 +312,6 @@ fn getMeta*(path: str): (Meta, std::Err) {
 			return {}, err
 		}
 		r ^= delete(r^, "run")
-	}
-	
-	if ^str(r["run_posix"]) != null {
-		m.run[.posix] = str(r["run_posix"])
-		r ^= delete(r^, "run_posix")
-		
-		printf("%s: Warning: The `run_posix` option has been deprecated in favor of `run` with platform strings\n", m.name)
-	}
-
-	if ^str(r["run_windows"]) != null {
-		m.run[.windows] = str(r["run_windows"])
-		r ^= delete(r^, "run_windows")
-
-		printf("%s: Warning: The `run_windows` option has been deprecated in favor of `run` with platform strings\n", m.name)
-	}
-
-	if validkey(r^, "pre_build") {
-		var err: std::Err
-		m.preBuild, err = getPlatString(r["pre_build"])
-		if err.code != 0 {
-			return {}, err
-		}
-		r ^= delete(r^, "pre_build")
-	}
-
-	if validkey(r^, "post_build") {
-		var err: std::Err
-		m.postBuild, err = getPlatString(r["post_build"])
-		if err.code != 0 {
-			return {}, err
-		}
-		r ^= delete(r^, "post_build")
 	}
 	
 	if ^map[str]any(r["build"]) != null {
@@ -610,115 +326,4 @@ fn getMeta*(path: str): (Meta, std::Err) {
 	m.others = r^
 
 	return m, {}
-}
-
-type ApiResp* = struct {
-	ok: bool
-	status: int
-	data: any
-	msg: str
-}
-
-fn parseResp(resp: http::Response): ApiResp {
-	out := ApiResp{}
-	out.status = resp.status
-	
-	payload := json::parse(str(resp.body))
-	if errs := ^[]json::Error(payload); errs != null {
-		out.ok = false
-		out.status = -2
-		out.msg = sprintf("invalid response body (status code: %d)", resp.status)
-		if debugMode {
-			for _, err in errs {
-				out.msg += sprintf("(%d): %s\n", err.lno, err.message)
-			}
-		}
-		return out
-	}
-	
-	if data := ^map[str]any(payload); data != null {
-		out.ok = bool(data["ok"])
-		if out.ok {
-			out.data = data["data"]
-		} else {
-			out.msg = str(data["msg"])
-		}
-	} else {
-		out.ok = false
-		out.msg = "invalid json"
-		out.status = -3
-	}
-	
-	return out
-}
-
-fn get*(url, endpoint: str, token: str = ""): ApiResp {
-	req := http::Request{
-		url: sprintf("%s/%s", url, endpoint),
-		headers: {
-			"User-Agent": "umbox-cli"
-		}
-	}
-
-	if len(token) > 0 {
-		req.headers["Authorization"] = "UmBox " + token
-	}
-
-	if debugMode {
-		printf("GET %s\n", req.url)
-	}
-
-	r, err := http::request(req)
-	if err.code != 0 {
-		return {
-			ok: false,
-			status: -1,
-			data: err,
-			msg: err.msg
-		}
-	}
-
-	if debugMode {
-		printf("  < %v\n", r)
-	}
-	
-	return parseResp(r)
-}
-
-fn post*(data: []char, url, endpoint: str, token: str = ""): ApiResp {
-	req := http::Request{
-		method: .post,
-		url: sprintf("%s/%s", url, endpoint),
-		headers: {
-			"User-Agent": "umbox-cli"
-		},
-		body: data
-	}
-
-	if len(token) > 0 {
-		req.headers["Authorization"] = "UmBox " + token
-	}
-	
-	if debugMode {
-		printf("POST %s %lv\n", req.url, req.headers)
-		printf("======DATA BEGIN======\n")
-		printf("%v\n", data)
-		printf("======DATA END========\n")
-	}
-
-	r, err := http::request(req)
-	if err.code != 0 {
-		return {
-			ok: false,
-			status: -1,
-			data: err,
-			msg: err.msg
-		}
-	}
-
-	if debugMode {
-		printf("  < %v\n", r)
-	}
-
-	return parseResp(r)
 }

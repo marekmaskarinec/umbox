@@ -24,13 +24,6 @@ fn run*(args: []str): std::Err {
 		pathSep = ";"
 	}
 
-	path := std::getenv("PATH")
-	for i,d in meta.dependencies {
-		cwd, err := os::getCwd()
-		path = filepath::join(cwd, "umbox", d.getName()) + pathSep + path
-	}
-	os::setEnv("PATH", path)
-
 	if len(cmd) > 0 {
 		cmdSp := strings::split(cmd, " ")
 		cmdSp[0] = filepath::fromslash(cmdSp[0])
