@@ -9,21 +9,10 @@ import (
 	"common.um"
 )
 
-type Dep* = struct {
-	full: str
-	url: str
-	ref: str
-	name: str
-	canonical: str
-	srcPath: str
-	dstPath: str
-	buildOnly: bool
-}
-
 fn git_init()
 fn git_strerror(): str
 fn git_updaterepo(dep, ref, dir: str): int
-fn fetchFor(deps: []Dep): std::Err
+fn fetchFor(deps: []common::Dep): std::Err
 
 var fetched, built: map[str]bool
 
@@ -43,53 +32,7 @@ fn link(target, link: str): std::Err {
 	return err
 }
 
-fn getDeps(path: str): ([]Dep, std::Err) {
-	meta, err := common::getMeta(filepath::join(path, "box.json"))
-	if err.code != 0 {
-		return {}, common::error(.boxJsonError, err.msg)
-	}
-
-	deps := []Dep{}
-	src := []any{}
-
-	if a := ^[]any(meta.others["deps"]); a != null {
-		src = a^
-	} else {
-		printf("warning: invalid or missing deps field\n")
-	}
-
-	buildCut := len(src)
-
-	if a := ^[]any(meta.others["bdeps"]); a != null {
-		src = append(src, a^)
-	}
-
-	for i,a in src {
-		if ^str(a) == null {
-			return {}, common::error(.boxJsonError, sprintf("dependency '%v' is not a string", a))
-		}
-
-		d := Dep{}
-		d.full = str(a)
-		split := strings::split(d.full, "@")
-		if len(split) < 2 {
-			return {}, common::error(.boxJsonError, sprintf("invalid dependency '%s'", d.full))
-		}
-		d.url = strings::join(slice(split, 0, len(split) - 1), "@")
-		d.ref = split[len(split) - 1]
-		d.canonical = strings::replace(d.full, "/", "_")
-		d.name = filepath::file(d.url)
-		d.srcPath = filepath::join("umbox", "gitsrc", d.canonical)
-		d.dstPath = filepath::join("umbox", "gitdst", d.canonical)
-		d.buildOnly = i >= buildCut
-
-		deps = append(deps, d)
-	}
-	
-	return deps, {}
-}
-
-fn (d: ^Dep) fetch(): std::Err {
+fn fetch(d: common::Dep): std::Err {
 	if fetched[d.full] {
 		return {}
 	}
@@ -102,18 +45,17 @@ fn (d: ^Dep) fetch(): std::Err {
 
 	fetched[d.full] = true
 
-	deps, err := getDeps(d.srcPath)
+	meta, err := common::getMeta(filepath::join(d.srcPath, "box.json"))
 	if err.code != 0 {
 		return err
 	}
 
-	return fetchFor(deps)
+	return fetchFor(meta.deps)
 }
 
-fn fetchFor(deps: []Dep): std::Err {
-	os::mkdirp("umbox")
+fn fetchFor(deps: []common::Dep): std::Err {
 	for i,d in deps {
-		if err := d.fetch(); err.code != 0 {
+		if err := fetch(d); err.code != 0 {
 			return err
 		}
 	}
@@ -121,7 +63,7 @@ fn fetchFor(deps: []Dep): std::Err {
 	return {}
 }
 
-fn (d: ^Dep) build(): std::Err {
+fn build(d: common::Dep): std::Err {
 	if built[d.full] {
 		return {}
 	}
@@ -153,18 +95,18 @@ fn (d: ^Dep) build(): std::Err {
 	return {}
 }
 
-fn buildFor(deps: []Dep): std::Err {
+fn buildFor(deps: []common::Dep): std::Err {
 	for i,d in deps {
-		child_deps, err := getDeps(d.srcPath)
+		meta, err := common::getMeta(filepath::join(d.srcPath, "box.json"))
 		if err.code != 0 {
 			return err
 		}
 
-		if err := buildFor(child_deps); err.code != 0 {
+		if err := buildFor(meta.deps); err.code != 0 {
 			return err
 		}
 
-		for j,cd in child_deps {
+		for j,cd in meta.deps {
 			if !cd.buildOnly {
 				continue
 			}
@@ -177,11 +119,11 @@ fn buildFor(deps: []Dep): std::Err {
 			}
 		}
 
-		if err := d.build(); err.code != 0 {
+		if err := build(d); err.code != 0 {
 			return err
 		}
 
-		for j,cd in child_deps {
+		for j,cd in meta.deps {
 			if cd.buildOnly {
 				continue
 			}
@@ -198,28 +140,30 @@ fn buildFor(deps: []Dep): std::Err {
 	return {}
 }
 
-fn run*(baseDir: str = ""): std::Err {
+fn run*(): std::Err {
 	git_init()
-
-	deps, err := getDeps("")
+		
+	meta, err := common::getMeta("box.json")
 	if err.code != 0 {
 		return err
 	}
 
-	err = fetchFor(deps)
+	os::mkdirp("umbox")
+
+	err = fetchFor(meta.deps)
 	if err.code != 0 {
 		return err
 	}
 
-	err = buildFor(deps)
+	err = buildFor(meta.deps)
 	if err.code != 0 {
 		return err
 	}
-	
-	for i,d in deps {
+
+	for i,d in meta.deps {
 		err = link(
 			filepath::join("gitdst", d.canonical),
-			filepath::join(baseDir, "umbox", d.name))
+			filepath::join("umbox", d.name))
 		if err.code != 0 {
 			return err
 		}

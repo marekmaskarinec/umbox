@@ -5,6 +5,7 @@ import (
 	"../umbox/jsonenc/jsonenc.um"
 	"../umbox/os/os.um"
 	"../umbox/strings/strings.um"
+	"../umbox/filepath/filepath.um"
 )
 
 type ErrCode* = enum {
@@ -89,6 +90,17 @@ type (
 	}
 )
 
+type Dep* = struct {
+	full: str
+	url: str
+	ref: str
+	name: str
+	canonical: str
+	srcPath: str
+	dstPath: str
+	buildOnly: bool
+}
+
 type Meta* = struct {
 	name: str
 	author: str
@@ -98,6 +110,7 @@ type Meta* = struct {
 	run: PlatString
 	others: map[str]any
 	build: Build
+	deps: []Dep
 }
 
 fn putPlatString(enc: ^jsonenc::Encoder, ps: PlatString) {
@@ -256,6 +269,47 @@ fn parseBuild*(o: map[str]any): (Build, std::Err) {
 	return b, {}
 }
 
+fn getDeps(meta: ^map[str]any): ([]Dep, std::Err) {
+	deps := []Dep{}
+	src := []any{}
+
+	if a := ^[]any(meta["deps"]); a != null {
+		src = a^
+	} else {
+		printf("warning: invalid or missing deps field\n")
+	}
+
+	buildCut := len(src)
+
+	if a := ^[]any(meta["buildDeps"]); a != null {
+		src = append(src, a^)
+	}
+
+	for i,a in src {
+		if ^str(a) == null {
+			return {}, error(.boxJsonError, sprintf("dependency '%v' is not a string", a))
+		}
+
+		d := Dep{}
+		d.full = str(a)
+		split := strings::split(d.full, "@")
+		if len(split) < 2 {
+			return {}, error(.boxJsonError, sprintf("invalid dependency '%s'", d.full))
+		}
+		d.url = strings::join(slice(split, 0, len(split) - 1), "@")
+		d.ref = split[len(split) - 1]
+		d.canonical = strings::replace(d.full, "/", "_")
+		d.name = filepath::file(d.url)
+		d.srcPath = filepath::join("umbox", "gitsrc", d.canonical)
+		d.dstPath = filepath::join("umbox", "gitdst", d.canonical)
+		d.buildOnly = i >= buildCut
+
+		deps = append(deps, d)
+	}
+	
+	return deps, {}
+}
+
 fn getMeta*(path: str): (Meta, std::Err) {
 	if !os::isfile(path) {
 		return {}, error(.fileNotFound, path)
@@ -322,6 +376,11 @@ fn getMeta*(path: str): (Meta, std::Err) {
 			return {}, err
 		}
 		r ^= delete(r^, "run")
+	}
+
+	m.deps, err = getDeps(r)
+	if err.code != 0 {
+		return {}, err
 	}
 	
 	if ^map[str]any(r["build"]) != null {
