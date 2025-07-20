@@ -14,23 +14,7 @@ fn git_strerror(): str
 fn git_updaterepo(dep, ref, dir: str): int
 fn fetchFor(deps: []common::Dep): std::Err
 
-var fetched, built: map[str]bool
-
-fn link(target, link: str): std::Err {
-	printf("link %s -> %s\n", link, target)
-
-	os::mkdirp(filepath::dir(link))
-	err := os::link(target, link)
-	if err.code != 0 && os::getPlatform() == os::Platform.windows {
-		std::system("mklink /j " + target + " " + link)
-		return {}
-	}
-
-	if err.code == 17 {
-		return {}
-	}
-	return err
-}
+var fetched: map[str]bool
 
 fn fetch(d: common::Dep): std::Err {
 	if fetched[d.full] {
@@ -63,83 +47,6 @@ fn fetchFor(deps: []common::Dep): std::Err {
 	return {}
 }
 
-fn build(d: common::Dep): std::Err {
-	if built[d.full] {
-		return {}
-	}
-
-	cwd, err := os::getCwd()
-	if err.code != 0 {
-		return err
-	}
-
-	err = os::chdir(d.srcPath)
-	if err.code != 0 {
-		return err
-	}
-
-	err = build::run({
-		outDir: filepath::join(cwd, d.dstPath)
-	})
-	if err.code != 0 {
-		return err
-	}
-
-	err = os::chdir(cwd)
-	if err.code != 0 {
-		return err
-	}
-
-	built[d.full] = true
-
-	return {}
-}
-
-fn buildFor(deps: []common::Dep): std::Err {
-	for i,d in deps {
-		meta, err := common::getMeta(filepath::join(d.srcPath, "box.json"))
-		if err.code != 0 {
-			return err
-		}
-
-		if err := buildFor(meta.deps); err.code != 0 {
-			return err
-		}
-
-		for j,cd in meta.deps {
-			if !cd.buildOnly {
-				continue
-			}
-
-			err := link(
-				filepath::join("..", "..", "gitdst", cd.canonical),
-				filepath::join(d.srcPath, "umbox", cd.name))
-			if err.code != 0 {
-				return err
-			}
-		}
-
-		if err := build(d); err.code != 0 {
-			return err
-		}
-
-		for j,cd in meta.deps {
-			if cd.buildOnly {
-				continue
-			}
-
-			err := link(
-				filepath::join("..", "..", cd.canonical),
-				filepath::join(d.dstPath, "umbox", cd.name))
-			if err.code != 0 {
-				return err
-			}
-		}
-	}
-
-	return {}
-}
-
 fn run*(): std::Err {
 	git_init()
 		
@@ -153,20 +60,6 @@ fn run*(): std::Err {
 	err = fetchFor(meta.deps)
 	if err.code != 0 {
 		return err
-	}
-
-	err = buildFor(meta.deps)
-	if err.code != 0 {
-		return err
-	}
-
-	for i,d in meta.deps {
-		err = link(
-			filepath::join("gitdst", d.canonical),
-			filepath::join("umbox", d.name))
-		if err.code != 0 {
-			return err
-		}
 	}
 	
 	return {}

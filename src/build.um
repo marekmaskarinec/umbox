@@ -13,6 +13,7 @@ type Params* = struct {
 	platformTag: bool
 	winCross: bool
 	outDir: str
+	link: bool
 }
 
 fn (par: ^Params) addFile(p1: str): std::Err {
@@ -76,7 +77,7 @@ fn tagTarget(path: str, plat: os::Platform): str {
 
 fn (par: ^Params) compileUMI(cc: str, path: str, target: common::Target, plat: os::Platform): std::Err {
 	if par.platformTag {
-		path = tagTarget(path, os::getPlatform())
+		path = tagTarget(path, plat)
 	}
 
 	rebuild := par.shouldRebuild(path, target.sources)
@@ -129,7 +130,29 @@ fn (par: ^Params) buildTargets(meta: common::Meta): std::Err {
 	return {}
 }
 
-fn run*(par: Params): std::Err {
+var built: map[str]bool
+
+fn link(target, link: str): std::Err {
+	os::mkdirp(filepath::dir(link))
+	err := os::link(target, link)
+	if err.code != 0 && os::getPlatform() == os::Platform.windows {
+		std::system("mklink /j " + target + " " + link)
+		return {}
+	}
+
+	if err.code == 17 {
+		return {}
+	}
+	return err
+}
+
+fn build*(par: Params): std::Err {
+	if built[os::getCwd().item0] {
+		return {}
+	}
+
+	printf("BU %s\n", filepath::file(os::getCwd().item0))
+
 	if par.winCross && os::getPlatform() != .posix {
 		return common::error(.buildError, "Cross compile for Windows only avaiable on Linux")
 	}
@@ -179,5 +202,112 @@ fn run*(par: Params): std::Err {
 		}
 	}
 
+	built[os::getCwd().item0] = true
+
+	return {}
+}
+
+fn buildDeps(par: Params, deps: []common::Dep): std::Err {
+	for i,d in deps {
+		meta, err := common::getMeta(filepath::join(d.srcPath, "box.json"))
+		if err.code != 0 {
+			return err
+		}
+
+		if err := buildDeps(par, meta.deps); err.code != 0 {
+			return err
+		}
+
+		for j,cd in meta.deps {
+			if !cd.buildOnly {
+				continue
+			}
+
+			err := link(
+				filepath::join("..", "..", "dst", cd.canonical),
+				filepath::join(d.srcPath, "umbox", cd.name))
+			if err.code != 0 {
+				return err
+			}
+		}
+
+		cwd, err := os::getCwd()
+		if err.code != 0 {
+			return err
+		}
+		
+		err = os::chdir(d.srcPath)
+		if err.code != 0 {
+			return err
+		}
+
+		par.outDir = filepath::join("..", "..", "dst", d.canonical)
+		err = build(par)
+		if err.code != 0 {
+			return err
+		}
+
+		err = os::chdir(cwd)
+		if err.code != 0 {
+			return err
+		}
+
+		for j,cd in meta.deps {
+			if cd.buildOnly {
+				continue
+			}
+
+			if par.link {
+				err = link(
+					filepath::join("..", "..", cd.canonical),
+					filepath::join(d.dstPath, "umbox", cd.name))
+			} else {
+				err = common::copyr(cd.dstPath, filepath::join(d.dstPath, "umbox", cd.name))
+			}
+			if err.code != 0 {
+				return err
+			}
+		}
+	}
+
+	return {}
+}
+
+fn run*(par: Params): std::Err {
+	// Using symlinks is not allowed for external builds
+	if par.outDir != "" && par.outDir != "." {
+		par.link = false
+	}
+
+	meta, err := common::getMeta("box.json")
+	if err.code != 0 {
+		return common::error(.boxJsonError, err.msg)
+	}
+
+	err = buildDeps(par, meta.deps)
+	if err.code != 0 {
+		return err
+	}
+	
+	err = build(par)
+	if err.code != 0 {
+		return err
+	}
+
+	for i,d in meta.deps {
+		if par.link {
+			err = link(
+				filepath::join("dst", d.canonical),
+				filepath::join("umbox", d.name))
+		} else {
+			err = common::copyr(
+				filepath::join("umbox", "dst", d.canonical),
+				filepath::join(par.outDir, "umbox", d.name))
+		}
+		if err.code != 0 {
+			return err
+		}
+	}
+	
 	return {}
 }

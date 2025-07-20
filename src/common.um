@@ -60,6 +60,29 @@ fn exitif*(e: std::Err) {
 	exit(1)
 }
 
+fn copyr*(src, dst: str): std::Err {
+	copyFile := fn(src, dst: str): std::Err {
+		os::mkdirp(filepath::dir(dst))
+		f1, err := std::fopen(src, "rb")
+		d, err := std::freadall(f1)
+		f2, err := std::fopen(dst, "wb")
+		std::fwrite(f2, d)
+		std::fclose(f1)
+		std::fclose(f2)	
+		
+		return {}
+	}
+			  
+	if os::isfile(src) {
+		return copyFile(src, dst)
+	}
+
+	return os::walk(src, |copyFile, src, dst| {
+		file2 := filepath::join(dst, strings::trimprefix(file, src))
+		copyFile(file, file2)
+	}, { excludeDirs: true })
+}
+
 type PlatString* = map[os::Platform]str
 
 fn (ps: ^PlatString) getByPlatform*(plat: os::Platform): str {
@@ -300,8 +323,8 @@ fn getDeps(meta: ^map[str]any): ([]Dep, std::Err) {
 		d.ref = split[len(split) - 1]
 		d.canonical = strings::replace(d.full, "/", "_")
 		d.name = filepath::file(d.url)
-		d.srcPath = filepath::join("umbox", "gitsrc", d.canonical)
-		d.dstPath = filepath::join("umbox", "gitdst", d.canonical)
+		d.srcPath = filepath::join("umbox", "src", d.canonical)
+		d.dstPath = filepath::join("umbox", "dst", d.canonical)
 		d.buildOnly = i >= buildCut
 
 		deps = append(deps, d)
