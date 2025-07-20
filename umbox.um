@@ -30,13 +30,12 @@ fn main() {
 		args.check()
 		common::exitif(run::run(cmd))
 	} else if args.mode("build", "Build the box") {
-		outPath := "out"
 		params := build::Params{}
-		args.optional(&outPath, "output", "Specify output directory/archive").short('o')
+		args.optional(&params.outDir, "output", "Specify output directory/archive").short('o')
 		args.optional(&params.platformTag, "plat", "Include platform tags in UMI names")
 		args.optional(&params.winCross, "win-cross", "Cross compile for Windows")
 		args.check()
-		common::exitif(build::run(build::DirOutput{outPath}, params))
+		common::exitif(build::run(params))
 	} else if args.mode("update", "Update packages from git source") {
 		args.check()
 		common::exitif(update::run())

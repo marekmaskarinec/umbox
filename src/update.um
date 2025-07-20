@@ -136,8 +136,9 @@ fn (d: ^Dep) build(): std::Err {
 		return err
 	}
 
-	out := build::DirOutput{ filepath::join(cwd, d.dstPath) }
-	err = build::run(out, {})
+	err = build::run({
+		outDir: filepath::join(cwd, d.dstPath)
+	})
 	if err.code != 0 {
 		return err
 	}

@@ -12,21 +12,11 @@ import (
 type Params* = struct {
 	platformTag: bool
 	winCross: bool
+	outDir: str
 }
 
-type Output* = interface {
-	addFile(f: str): std::Err
-	shouldRebuild(target: str, sources: []str): bool
-	close(): std::Err
-	cc(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Err
-}
-
-type DirOutput* = struct {
-	path: str
-}
-
-fn (o: ^DirOutput) addFile*(p1: str): std::Err {
-	p2 := filepath::join(o.path, p1)
+fn (par: ^Params) addFile(p1: str): std::Err {
+	p2 := filepath::join(par.outDir, p1)
 	os::mkdirp(filepath::dir(p2))
 	f1, err := std::fopen(p1, "rb")
 	d, err := std::freadall(f1)
@@ -38,8 +28,8 @@ fn (o: ^DirOutput) addFile*(p1: str): std::Err {
 	return {} // TODO
 }
 
-fn (o: ^DirOutput) shouldRebuild*(target: str, sources: []str): bool {
-	target = filepath::join(o.path, target)
+fn (par: ^Params) shouldRebuild(target: str, sources: []str): bool {
+	target = filepath::join(par.outDir, target)
 
 	if !os::isfile(target) {
 		return true
@@ -64,15 +54,13 @@ fn (o: ^DirOutput) shouldRebuild*(target: str, sources: []str): bool {
 	return false
 }
 
-fn (o: ^DirOutput) close*(): std::Err {
-	return {}
-}
-
-fn (o: ^DirOutput) cc*(file, cmd: str, f: fn(file, cmd: str): std::Err): std::Err {
-	file = filepath::join(o.path, file)
-	printf("file: %s\n", filepath::dir(file))
-	os::mkdirp(filepath::dir(file))
-	return f(file, cmd)
+fn (par: ^Params) buildCmd(cc, ldflags, cflags, out: str, sources: []str): str {
+	return sprintf("%s -shared %s -o %s %s %s",
+		cc,
+		ldflags,
+		filepath::join(par.outDir, out),
+		cflags,
+		strings::join(sources, " "))
 }
 
 fn tagTarget(path: str, plat: os::Platform): str {
@@ -86,31 +74,34 @@ fn tagTarget(path: str, plat: os::Platform): str {
 	return strings::trimsuffix(path, ".umi") + suffix
 }
 
-fn compileUMI(out: Output, cc: str, path: str, target: common::Target, plat: os::Platform, par: Params): std::Err {
+fn (par: ^Params) compileUMI(cc: str, path: str, target: common::Target, plat: os::Platform): std::Err {
 	if par.platformTag {
 		path = tagTarget(path, os::getPlatform())
 	}
 
-	rebuild := out.shouldRebuild(path, target.sources)
+	rebuild := par.shouldRebuild(path, target.sources)
 	if !rebuild {
 		if common::debugMode { printf("No need to rebuild %s\n", path) }
 		return {}
 	}
 
-	command := sprintf("%s -shared %s -o %%s %s %s", cc, target.ldflags.getByPlatform(plat),
-		 target.cflags.getByPlatform(plat), strings::join(target.sources, " "))
-	return out.cc(path, command, {
-		cmd = sprintf(cmd, file)
-		printf("+ %s\n", cmd)
-		rc := std::system(cmd)
-		if rc != 0 {
-			return common::error(.buildError, sprintf("build for %s exited with code %d", file, rc))
-		}
-		return {}
-	})
+	command := par.buildCmd(
+		cc,
+		target.ldflags.getByPlatform(plat),
+		target.cflags.getByPlatform(plat),
+		path,
+		target.sources)
+	os::mkdirp(filepath::dir(filepath::join(par.outDir, path)))
+	printf("+ %s\n", command)
+	rc := std::system(command)
+	if rc != 0 {
+		return common::error(.buildError, sprintf("build for %s exited with code %d", path, rc))
+	}
+	
+	return {}
 }
 
-fn buildTargets(out: Output, meta: common::Meta, par: Params): std::Err {
+fn (par: ^Params) buildTargets(meta: common::Meta): std::Err {
 	cc := std::getenv("CC")
 	if cc == "" {
 		cc = "cc"
@@ -122,13 +113,13 @@ fn buildTargets(out: Output, meta: common::Meta, par: Params): std::Err {
 			continue
 		}
 
-		err := compileUMI(out, cc, path, target, os::getPlatform(), par)
+		err := par.compileUMI(cc, path, target, os::getPlatform())
 		if err.code != 0 {
 			return err
 		}
 
 		if (par.winCross) {
-			err = compileUMI(out, "x86_64-w64-mingw32-gcc", path, target, .windows, par)
+			err = par.compileUMI("x86_64-w64-mingw32-gcc", path, target, .windows)
 			if err.code != 0 {
 				return err
 			}
@@ -138,7 +129,7 @@ fn buildTargets(out: Output, meta: common::Meta, par: Params): std::Err {
 	return {}
 }
 
-fn run*(out: Output, par: Params): std::Err {
+fn run*(par: Params): std::Err {
 	if par.winCross && os::getPlatform() != .posix {
 		return common::error(.buildError, "Cross compile for Windows only avaiable on Linux")
 	}
@@ -160,20 +151,23 @@ fn run*(out: Output, par: Params): std::Err {
 		}
 	}
 
-	err = buildTargets(out, meta, par)
+	err = par.buildTargets(meta)
 	if err.code != 0 {
 		return err
 	}
 
-	for i,f in meta.build.include {
-		if os::isfile(f) {
-			out.addFile(f)
-		} else if os::isdir(f) {
-			os::walk(f, fn(p: str) |out| {
-				out.addFile(p)
-			})
-		} else {
-			return common::error(.fileNotFound, f)
+	if par.outDir != "" {
+		// copying is not needed if the output is the current directory
+		for i,f in meta.build.include {
+			if os::isfile(f) {
+				par.addFile(f)
+			} else if os::isdir(f) {
+				os::walk(f, fn(p: str) |par| {
+					par.addFile(p)
+				})
+			} else {
+				return common::error(.fileNotFound, f)
+			}
 		}
 	}
 

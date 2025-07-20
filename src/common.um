@@ -214,6 +214,16 @@ fn parseBuild*(o: map[str]any): (Build, std::Err) {
 		}
 	}
 	
+	if arr := ^[]any(o["include"]); arr != null {
+		b.include = make([]str, len(arr^))
+		for i,a in arr {
+			if ^str(a) == null {
+				return {}, error(.boxJsonError, sprintf("include '%v' is not a string", a))
+			}
+			b.include[i] = str(a)
+		}
+	}
+	
 	if ^map[str]any(o["targets"]) != null {
 		b.targets = map[str]Target{}
 		for k, v in map[str]any(o["targets"]) {
