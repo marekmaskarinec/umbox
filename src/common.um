@@ -23,6 +23,8 @@ type ErrCode* = enum {
 	preBuild
 	postBuild
 	boxJsonError
+	buildError
+	githubApiError
 }
 
 var errStrings: []str = []str{
@@ -38,7 +40,9 @@ var errStrings: []str = []str{
 	"json key not found",
 	"pre build failed",
 	"post build failed",
-	"box.json error"
+	"box.json error",
+	"build error",
+	"github API error"
 }
 
 fn error*(ec: ErrCode, msg: str = ""): std::Err {
@@ -201,13 +205,33 @@ fn (b: ^FileBox) encode*(): str {
 
 type PlatString* = map[os::Platform]str
 
-fn (ps: ^PlatString) get*(): str {
-	if validkey(ps^, os::getPlatform()) {
-		return ps[os::getPlatform()]
+fn (ps: ^PlatString) getByPlatform*(plat: os::Platform): str {
+	if validkey(ps^, plat) {
+		return ps[plat]
 	}
 	
 	return ps[.unknown]
 }
+
+fn (ps: ^PlatString) get*(): str {
+	return ps.getByPlatform(os::getPlatform())
+}
+
+type (
+	Target* = struct {
+		sources: []str
+		cflags: PlatString
+		ldflags: PlatString
+	}
+
+	Build* = struct {
+		isValid: bool
+		pre: PlatString
+		post: PlatString
+		include: []str
+		targets: map[str]Target
+	}
+)
 
 type Meta* = struct {
 	name: str
@@ -224,6 +248,7 @@ type Meta* = struct {
 	preBuild: PlatString
 	postBuild: PlatString
 	others: map[str]any
+	build: Build
 }
 
 fn putPlatString(enc: ^jsonenc::Encoder, ps: PlatString) {
@@ -367,6 +392,62 @@ fn getPlatString(o: any): (PlatString, std::Err) {
 	}
 	
 	return ps, {}
+}
+
+fn parseBuild*(o: map[str]any): (Build, std::Err) {
+	var err: std::Err
+	b := Build{
+		isValid: true
+	}
+	   
+	if validkey(o, "pre") {
+		b.pre, err = getPlatString(o["pre"])
+		if err.code != 0 {
+			return {}, err
+		}
+	}	
+	
+	if validkey(o, "post") {
+		b.post, err = getPlatString(o["post"])
+		if err.code != 0 {
+			return {}, err
+		}
+	}
+	
+	if ^[]any(o["include"]) != null {
+		b.include = []str([]any(o["include"]))
+	}
+	
+	if ^map[str]any(o["targets"]) != null {
+		b.targets = map[str]Target{}
+		for k, v in map[str]any(o["targets"]) {
+			vo := map[str]any(v)
+			t := Target{}
+			if ^[]any(vo["sources"]) != null {
+				t.sources = []str([]any(vo["sources"]))
+			} else if ^str(vo["sources"]) != null {
+				t.sources = []str{str(vo["sources"])}
+			}
+			
+			if validkey(vo, "cflags") {
+				t.cflags, err = getPlatString(vo["cflags"])
+				if err.code != 0 {
+					return {}, err
+				}
+			}
+			
+			if validkey(vo, "ldflags") {
+				t.ldflags, err = getPlatString(vo["ldflags"])
+				if err.code != 0 {
+					return {}, err
+				}
+			}
+			
+			b.targets[k] = t
+		}
+	}
+	
+	return b, {}
 }
 
 fn getMeta*(path: str): (Meta, std::Err) {
@@ -515,6 +596,15 @@ fn getMeta*(path: str): (Meta, std::Err) {
 			return {}, err
 		}
 		r ^= delete(r^, "post_build")
+	}
+	
+	if ^map[str]any(r["build"]) != null {
+		m.build, err = parseBuild(map[str]any(r["build"]))
+		if err.code != 0 {
+			return {}, err
+		}
+
+		r ^= delete(r^, "build")
 	}
 
 	m.others = r^
