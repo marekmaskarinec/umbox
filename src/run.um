@@ -34,12 +34,12 @@ fn run*(args: []str): std::Err {
 	if len(cmd) > 0 {
 		cmdSp := strings::split(cmd, " ")
 		cmdSp[0] = filepath::fromslash(cmdSp[0])
-		cmd = strings::join(cmdSp, " ")
+		cmd = strings::join(append(cmdSp, args), " ")
 
 		std::system(cmd)
+	} else {
+		std::system(strings::join(args, " "))
 	}
-
-	std::system(strings::join(args, " "))
 
 	return {}
 }
