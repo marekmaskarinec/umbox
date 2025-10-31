@@ -2,8 +2,7 @@
 !include "EnvVarUpdate.nsh"
 
 !define NAME "umbox"
-!define VERSION "v1.3.0"
-!define SLUG "${NAME} ${VERSION}"
+!define SLUG "${NAME}"
 
 Name "${NAME}"
 Outfile "../${NAME}_install.exe"
