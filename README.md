@@ -7,7 +7,7 @@ easily install and update libraries, including their dependencies. UmBox offers
 a CLI tool (hosted in this repo) and a Web UI (hosted in the
 [umboxs](https://github.com/marekmaskarinec/umboxs) repo). The Web UI can be
 used to search for packages and to browse their documentation, which is
-automatically generated based on the [MMDOC](https://git.sr.ht/~mrms/mmdoc)
+automatically generated based on the [MMDOC](https://github.com/marekmaskarinec/mmdoc)
 syntax.
 
 * [Web UI](https://umbox.tophat2d.dev)
