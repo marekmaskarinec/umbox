@@ -22,6 +22,15 @@ runs:
         sudo apt install -y curl unzip zip nsis rsync
         curl https://mmq.cz/dl/umbox/umbox_linux.zip -O
         unzip umbox_linux.zip
+    - name: Update
+      shell: bash
+      run: |
+        cd ${{ inputs.dir }}
+        if [ "${{ inputs.debug }}" == "true" ]; then
+          ./umbox_linux/umbox update -d
+        else
+          ./umbox_linux/umbox update
+        fi
     - name: Build
       shell: bash
       run: |
