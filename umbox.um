@@ -1,18 +1,21 @@
 import (
 	"std.um"
 	
-	"src/common.um"
 	"src/build.um"
+	"src/common.um"
 	"src/init.um"
 	"src/install.um"
+	"src/newbuild.um"
+	"src/register.um"
 	"src/remove.um"
 	"src/run.um"
 	"src/search.um"
 	"src/update.um"
-	"src/register.um"
 	"src/upload.um"
 
 	"umbox/args/args.um"
+	"umbox/filepath/filepath.um"
+	"umbox/tar/tar.um"
 )
 
 fn main() {
@@ -71,6 +74,20 @@ fn main() {
 		args.optionalNext(&file, "File to upload")
 		args.check()
 		common::exitif(upload::run(secret, file))
+	} else if args.mode("newbuild", "Run new experimental build") {
+		outPath := "out"
+		params := newbuild::Params{}
+		args.optional(&outPath, "output", "Specify output directory/archive").short('o')
+		args.optional(&params.platformTag, "plat", "Include platform tags in UMI names")
+		args.optional(&params.winCross, "win-cross", "Cross compile for Windows")
+		args.check()
+		if filepath::ext(outPath) == "tar" {
+			t, err := tar::open(outPath, "w")
+			common::exitif(err)
+			common::exitif(newbuild::run(newbuild::TarOutput{t}, params))
+		} else {
+			common::exitif(newbuild::run(newbuild::DirOutput{outPath}, params))
+		}
 	} else {
 		args.usage()
 	}
